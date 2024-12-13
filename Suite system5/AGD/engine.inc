@@ -4131,14 +4131,9 @@ dmsg4:
 
 bmsg1:
 	lda fcolour		; Set textcolour
-	jsr pchar
-	inc dispy
-	jsr pchar
-	dec dispy
-	jsr nexpos
+	jsr bchar
 	lda #13			; Set double height
 	jsr bchar
-
 bmsg4:
 	ldy #0
 	lda (z80_hl),y 		; get character to display.
@@ -4146,7 +4141,6 @@ bmsg4:
 	cmp #13
 	beq bmsg2
 	jsr bchar 		; display big char.
-;	jsr nexpos
 bmsg3:
 	ldy #0
 	lda (z80_hl),y 		; look at last character.
@@ -4158,8 +4152,7 @@ bmsg3:
 	pla
 	asl a  			; was terminator flag set?
 	bcc bmsg4		; no, keep going.
-	rts
-
+	jmp dscor2
 bmsg2:
 	lda #0
 	sta dispx
@@ -4187,60 +4180,6 @@ bchar:
 	jsr nexpos		; display position.
 	rts
 
-;	sta z80_e		; save char in lb
-
-
-;	lda #0
-;	sta z80_d		; reset hb
-
-;	asl z80_e 		; multiply char by 8.
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d		; de = a*8
-
-;	clc			; de = Fontpointer + a*8
-;	lda z80_e
-;	adc #<(FONT-256) 		; address of font.
-;	sta z80_e
-;	lda z80_d
-;	adc #>(FONT-256)
-;	sta z80_d
-
-;	jsr gprad 		; get screen address.
-
-;	ldx #0			; height of character in font.
-;bchar0:
-;	ldy #0
-;	lda (z80_de),y 		; get a bit of the font.
-
-;.if gflag
-;	and andeor
-;	eor andeor+1
-;.endif
-;.if iflag
-;	eor #$ff
-;.endif
-
-;	sta (scraddr),y
-;	pha
-;	jsr nline 		; next line down.
-;	pla
-;	sta (scraddr),y
-;	jsr nline 		; next line down.
-;
-;	clc
-;	inc z80_e 		; next line of font.
-;	bne :+
-;	inc z80_d
-;:
-;	inx
-;	cpx #8
-;	bne bchar0
-	
-;	jsr nexpos		; display position.
-;	bne bchar2 		; not on a new line.
 bchar3:
 	inc dispy
 	jsr nexlin 		; next line check.
@@ -4778,55 +4717,95 @@ sspria:
 sspri2:
 	lda z80_e
 	sta dline1+1		; Set spritedata address
-	sta dline2+1
+	sta dline2a+1
+	sta dline2b+1
+	sta dline2c+1
 	lda z80_d
 	sta dline1+2
-	sta dline2+2
+	sta dline2a+2
+	sta dline2b+2
+	sta dline2c+2
 	stx xtmp
 	ldx #0			; vertical lines.
 sspri0:
 	jsr dline		; draw a line.
-	cpx #16			; detect block boundery
+	cpx #4			; detect end of line 0
 	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
 	inc scraddr+1		; jump to next blockline
 :
-	cpx #32			; check finished
+	cpx #8			; detect end of line 1
+	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
+	inc scraddr+1		; jump to next blockline
+:
+	cpx #12			; Detect end of line 2
+
 .if bflag
 	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
 	inc scraddr+1		; jump to next blockline
-	inc z80_hlp+1		; jump to next blockline
 :
-	cpx #48			; check finished
+	cpx #16			; Detect end of line 3
 .endif
+
 	bne sspri0		; no, repeat
 	ldx xtmp
 	rts
 
 ;-----------------------------------------------------------------
+; ssprib = single sprite, new (ix).
+;-----------------------------------------------------------------
 
 ssprib:
 	jsr gspran 		; get new sprite address.
+				; z80_de = new sprite address
 	jmp sspri2
 	
 ;-----------------------------------------------------------------
+; sspric = erase old sprite and plot new sprite line by line
+;-----------------------------------------------------------------
 
 sspric:
+rts
 	jsr gsprad 		; get old sprite address.
+				; z80_de = old sprite address
 	lda z80_e
 	sta ddline1+1		; Set spritedata address
-	sta ddline2+1
+	sta ddline2a+1
+	sta ddline2b+1
+	sta ddline2c+1
 	lda z80_d
 	sta ddline1+2
-	sta ddline2+2
+	sta ddline2a+2
+	sta ddline2b+2
+	sta ddline2c+2
 	jsr exx  		; store addresses.
 
 	jsr gspran 		; get new sprite addresses.
+				; z80_de = old sprite address
 	lda z80_e
 	sta dline1+1		; Set spritedata address
-	sta dline2+1
+	sta dline2a+1
+	sta dline2b+1
+	sta dline2c+1
 	lda z80_d
 	sta dline1+2
-	sta dline2+2
+	sta dline2a+2
+	sta dline2b+2
+	sta dline2c+2
 
 	stx xtmp
 	ldx #0			; vertical lines.
@@ -4835,18 +4814,37 @@ lloop:
 	dex
 	dex
 	jsr ddline 		; delete a line.
-	cpx #16			; detect block boundery
+
+	cpx #4			; detect end of line 0
 	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
 	inc scraddr+1		; jump to next blockline
-	inc z80_hlp+1		; jump to next blockline
 :
-	cpx #32			; check finished
+	cpx #8			; detect end of line 1
+	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
+	inc scraddr+1		; jump to next blockline
+:
+	cpx #12			; Detect end of line 2
+
 .if bflag
 	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
 	inc scraddr+1		; jump to next blockline
-	inc z80_hlp+1		; jump to next blockline
 :
-	cpx #48			; check finished
+	cpx #16			; Detect end of line 3
 .endif
 	bne lloop		; no, repeat
 	ldx xtmp
@@ -4860,64 +4858,36 @@ dline:
 dline1:
 	lda objdta,x		; fetch spriteleft byte
 	sta z80_a		; save spriteright byte
-.if hflag
-	sty ytmp
-	lda scraddr
-	and #31
-	sta dispx
-	lda scraddr+1
-	and #31
-	sta dispy
-	jsr pradd
-	ldy #0
-	lda (bufaddr),y
-	cmp #CUSTOM
-	beq sline
-	ldy ytmp
-.endif
 	lda z80_a
 	and z80_c		; mask left
 	eor (scraddr),y		; merge with screenleft
 	sta (scraddr),y		; write screenleft
-sline:
-.if hflag
-	ldy ytmp
-.endif
 	inx			; next spritebyte
 	iny			; point to screenmiddle
-.if hflag
-	sty ytmp
-	ldy #1
-	lda (bufaddr),y	
-	cmp #CUSTOM
-	beq sline2
-	ldy ytmp
-.endif	
-dline2:
+dline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
 	sta (scraddr),y		; write screenmiddle
-sline2:
-.if hflag
-	ldy ytmp
-.endif
-	iny			; point to screenright
-.if hflag
-	sty ytmp
-	ldy #2
-	lda (bufaddr),y
-	cmp #CUSTOM
-	beq sline3
-	ldy ytmp
-.endif
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+dline2b:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (scraddr),y		; merge with screenmiddle
+	sta (scraddr),y		; write screenmiddle
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+dline2c:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (scraddr),y		; merge with screenmiddle
+	sta (scraddr),y		; write screenmiddle
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+
 	lda z80_a		; fetch spriteright byte
 	and z80_b		; mask right
 	eor (scraddr),y		; merge with screenright
 	sta (scraddr),y		; write screenright
 sline3:
-.if hflag
-	ldy ytmp
-.endif
 	inx			; next spritebyte
 
 	rts
@@ -4929,75 +4899,51 @@ ddline:
 ddline1:
 	lda objdta,x		; fetch spriteleft byte
 	sta z80_a		; save spriteright byte
-.if hflag
-	sty ytmp
-	lda z80_hlp
-	and #31
-	sta dispx
-	lda z80_hlp+1
-	and #31
-	sta dispy
-	jsr pradd
-	ldy #0
-	lda (bufaddr),y
-	cmp #CUSTOM
-	beq dsline
-	ldy ytmp
-.endif
+
 	lda z80_a
 	and z80_cp		; mask left
 	eor (z80_hlp),y		; merge with screenleft
-	sta (z80_hlp),y		; write screenleft
-dsline:
-.if hflag
-	ldy ytmp
-.endif
+	sta (z80_hlp),y		; write spritedata0
 	inx			; next spritebyte
 	iny			; point to screenmiddle
-.if hflag
-	sty ytmp
-	ldy #1
-	lda (bufaddr),y
-	cmp #CUSTOM
-	beq dsline2
-	ldy ytmp
-.endif
-ddline2:
+ddline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
-	sta (z80_hlp),y		; write screenmiddle
-dsline2:
-.if hflag
-	ldy ytmp
-.endif
+	sta (z80_hlp),y		; write spritedata1
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+ddline2b:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (z80_hlp),y		; merge with screenmiddle
+	sta (z80_hlp),y		; write spritedata2
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+ddline2c:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (z80_hlp),y		; merge with screenmiddle
+	sta (z80_hlp),y		; write spritedata3
+	inx			; next spritebyte
 	iny			; point to screenright
-.if hflag
-	sty ytmp
-	ldy #2
-	lda (bufaddr),y
-	cmp #CUSTOM
-	beq dsline3
-	ldy ytmp
-.endif
+
+ddline2d:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (z80_hlp),y		; merge with screenmiddle
+	sta (z80_hlp),y		; write spritedata4
+	iny			; point to screenright
+	inx			; next spritebyte
+
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
 	eor (z80_hlp),y		; merge with screenright
-	sta (z80_hlp),y		; write screenright
-dsline3:
-.if hflag
-	ldy ytmp
-.endif
-	inx			; next spritebyte
+	sta (z80_hlp),y		; write spritedata5
 
 	rts
 
 sprline:
-	.byte $00,$01,$20,$21,$40,$41,$60,$61
-	.byte $80,$81,$a0,$a1,$c0,$c1,$e0,$e1
-	.byte $00,$01,$20,$21,$40,$41,$60,$61
-	.byte $80,$81,$a0,$a1,$c0,$c1,$e0,$e1
-	.byte $00,$01,$20,$21,$40,$41,$60,$61
-	.byte $80,$81,$a0,$a1,$c0,$c1,$e0,$e1
+	.byte $00,$01,$02,$03,$04
+	.byte $28,$29,$2a,$2b,$2c
+	.byte $50,$51,$52,$53,$54
+	.byte $78,$79,$7a,$7b,$7c
 
 ;----------------------------------------------------------------------
 ; Line drawn, now work out next target address.
