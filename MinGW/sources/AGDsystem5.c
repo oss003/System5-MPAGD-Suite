@@ -1,11 +1,15 @@
-/* Atomic AGD SCript Compiler                            Version 6 */
+/* Atomic AGD SCript Compiler                                      */
 /*                                                                 */
 /*   ZX Spectrum/CPC version written by Jonathan Cauldwell         */
-/*   Atom version written by Kees van Oss v0.99 2018-2022          */
+/*   Atom version written by Kees van Oss       2018-2022          */
 /*                                                                 */
-/*   v1.00 JUMP/FALL MPAGD, TABLEJUMP/TABLEFALL like AGD bahaviour */
-/*   v1.01 Added HIDEBLOCK type                                    */
-/*   v1.02 Fixed bigsprites bug                                    */
+/*   v0.7.10-  ; Initial version                                   */
+/*   v0.7.10a  ; clwflag, CLW code                                 */	
+/*   v0.7.10b  ; bigflag, Bigtext code                             */	
+/*   v0.7.10c  ; crflag, Crumbling blocks                          */
+/*   v0.7.10d  ; xflag, Metablocks (16x16)                         */
+/*   v0.7.10e  ; rflag, RAM Pre-Shifted Tables                     */
+/*   v0.7.10f  ; TICKER accepts variables                          */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -914,6 +918,7 @@ short int nCollectables = 0;							/* append collectable blocks code when non-ze
 short int nObject = 0;								/* append object code */
 short int nLadder = 0;								/* append ladder code */
 short int nCLW = 0;								/* append CLW code */
+short int nBigText = 0;								/* append big text code */
 
 FILE *pObject;									/* output file. */
 FILE *pEngine;									/* engine source file. */
@@ -945,7 +950,7 @@ int main( int argc, const char* argv[] )
 	char cFlagString[ 128 ];
 	short int nFlagStringSize;									/* source pointer. */
 
-	puts( "AGD Compiler for ZX Spectrum Version 0.6" );
+	puts( "AGD Compiler for ZX Spectrum Version 0.7.10-" );
 	puts( "(C) Jonathan Cauldwell February 2018" );
 	puts( "Atom version by Kees van Oss March 2018 \n" );
 
@@ -962,7 +967,7 @@ int main( int argc, const char* argv[] )
 		}
 	} else 
 	{
-		fputs( "Usage: Agd ProjectName Flags\neg: AGD TEST b r k\n", stderr );
+		fputs( "Usage: Agd ProjectName Flags\neg: AGD TEST b\n", stderr );
 	    // invalid number of command line arguments
 		exit ( 1 );
 	}
@@ -1331,24 +1336,26 @@ int main( int argc, const char* argv[] )
 
 	nFlagStringSize = sprintf( cFlagString, "; Flags saved by AGD Compiler\r\n" );
   	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write header to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\ncflag = %i ;", nCollectables );
+	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write cflag to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\ndflag = %i ;", nDigging );
+	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write dflag to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\nlflag = %i ;", nLadder );
+	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write lflag to game.cfg. */
 	nFlagStringSize = sprintf( cFlagString, "\r\nmflag = %d ;", nMenu );
 	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write mflag to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\noflag = %i ;", nObject );
+	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write oflag to game.cfg. */
 	nFlagStringSize = sprintf( cFlagString, "\r\npflag = %i ;", nParticles );
 	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write pflag to game.cfg. */
 	nFlagStringSize = sprintf( cFlagString, "\r\nsflag = %i ;", nScrolling );
 	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write sflag to game.cfg. */
-	nFlagStringSize = sprintf( cFlagString, "\r\ndflag = %i ;", nDigging );
-	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write dflag to game.cfg. */
-	nFlagStringSize = sprintf( cFlagString, "\r\ncflag = %i ;", nCollectables );
-	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write cflag to game.cfg. */
-	nFlagStringSize = sprintf( cFlagString, "\r\noflag = %i ;", nObject );
-	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write oflag to game.cfg. */
-	nFlagStringSize = sprintf( cFlagString, "\r\nlflag = %i ;", nLadder );
-	  fwrite( &cFlagString, 1, nFlagStringSize, pConfig );					/* write lflag to game.cfg. */
 	nFlagStringSize = sprintf( cFlagString, "\r\nclwflag = %i ;", nCLW );
 	  fwrite( cFlagString, 1, nFlagStringSize, pConfig );					/* write clwflag to game.cfg. */
-//	nFlagStringSize = sprintf( cFlagString, "\r\nrflag = %i ;", flagR );
-//	  fwrite( cFlagString, 1, nFlagStringSize, pConfig );					/* write rflag to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\nbigflag = %i ;", nBigText );
+	  fwrite( cFlagString, 1, nFlagStringSize, pConfig );					/* write bigflag to game.cfg. */
+	nFlagStringSize = sprintf( cFlagString, "\r\nrflag = %i ;", flagR );
+	  fwrite( cFlagString, 1, nFlagStringSize, pConfig );					/* write rflag to game.cfg. */
 	fclose( pConfig );
 
 	return ( nErrors );
@@ -1569,14 +1576,14 @@ void CreateBlocks( void )
 		WriteText( "\n        .byte " );						/* start of text message */
 		nData = 0;
 		cType[ nCounter ] = *cSrc++;						/* store type in array */
-		while ( nData++ < 7 )
+		while ( nData++ < 1 )
 		{
 			WriteNumber( *cSrc++ );							/* write byte of data */
 			WriteText( "," );								/* put a comma */
 		}
 
 		WriteNumber( *cSrc++ );								/* write final byte of graphic data */
-		nAttr[ nCounter ] = *cSrc++;						/* store attribute in array */
+		nAttr[ nCounter ] = *cSrc;						/* store attribute in array */
 		nCounter++;
 	}
 	while ( ( cSrc - cBuff ) < lSize );
@@ -1631,6 +1638,7 @@ void CreateSprites( void )
 	{
 		nShiftsMax = 4;
 	}
+
 
 	/* Set up source address. */
 	cSrc = cBufPos;
@@ -3926,6 +3934,7 @@ void CR_PrintMode( void )
 	CompileArgument();
 	WriteText ( "		; PRINTMODE" );
 	WriteInstruction( "sta prtmod" );					/* set print mode. */
+        nBigText = 1;
 }
 
 void CR_At( void )
@@ -4747,9 +4756,12 @@ void CR_Ticker( void )
 {
 	unsigned short int nArg1 = NextKeyword();
 	unsigned short int nArg2;
+	unsigned char *cSrc;									/* source pointer. */
+
 
 	if ( nArg1 == INS_NUM )									/* first argument is numeric. */
 	{
+		cSrc = cBufPos;										/* store position in buffer. */
 		nArg1 = GetNum( 8 );								/* store first argument. */
 		if ( nArg1 == 0 )
 		{
@@ -4786,7 +4798,13 @@ void CR_Ticker( void )
 				}
 				else
 				{
-					Error( "Invalid argument for TICKER" );
+//					Error( "Invalid argument for TICKER" );
+					cBufPos = cSrc;
+					CompileArgument();
+					WriteInstruction( "sta z80_b" );
+					CompileArgument();
+					WriteInstruction( "sta z80_c" );
+					WriteInstruction( "jsr iscrly" );
 				}
 			}
 		}
@@ -4879,10 +4897,10 @@ void CR_DefineBlock( void )
 		else
 		{
 			Error( "Missing data for DEFINEBLOCK" );
-			nDatum = 10;
+			nDatum = 3;
 		}
 	}
-	while ( nDatum < 10 );
+	while ( nDatum < 3 );
 }
 
 void CR_DefineWindow( void )

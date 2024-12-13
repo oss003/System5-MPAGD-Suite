@@ -1,2 +1,2 @@
-AGD: AGDatom.c
-	gcc -o AGD AGDatom.c
+AGD: AGDsystem5.c
+	gcc -o AGD AGDsystem5.c
