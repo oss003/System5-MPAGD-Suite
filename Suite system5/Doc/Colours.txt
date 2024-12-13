@@ -1,0 +1,7 @@
+	1 = text red		17 = graphics red
+	2 = text green		18 = graphics green
+	3 = text yellow		19 = graphics yellow
+	4 = text blue		20 = graphics blue
+	5 = text magenta	21 = graphics magenta
+	6 = text cyan		22 = graphics cyan
+	7 = text white		23 = graphics white

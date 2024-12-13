@@ -1,0 +1,139 @@
+Emulator:
+	MAME 264
+		mame acrnsys3 -flop1 c:\temp\aeon1.dsk 
+	Acorn System 3 (6502 CPU)
+	Atom/System 3 File Server
+	*FPBASIC ($c000)
+
+Memory map:
+	F000	4kB	DOS
+	E000	4kB	NOS
+
+	D000	4kB	RAM1
+	C000	4kB	RAM1
+
+	B000	4kB	RAM2
+	A000	4kB	RAM2
+	9000	4kB	RAM2
+	8000	4kB	RAM2
+
+	7000	4kB 	RAM1
+	6000	4kB 	RAM1
+	5000	4kB 	RAM1
+	4000	4kB 	RAM1
+	3000	4kB 	RAM1
+	2000	4kB 	RAM1
+
+	1800	2kB	????
+	1000	2kB	Video RAM (80x25)
+	0800	2 kB	I/O	
+	0400	1kB	Video RAM (40x25)
+	0000	1kB	ZP RAM + WS
+
+	RAM1 = 32kB RAM board
+	RAM2 = 16kB RAM board
+
+OS calls:
+		System5	System3
+	OSBPUT: $FFD1
+	OSBGET: $FFD4
+	OSSAVE: $FFDD
+	OSLOAD: $FFE0
+	OSECHO: $FFE6
+	OSCRLF: $FFED
+	OSWRCH: $FFF4	$FD7B
+	OSRDCH:		$FD53
+	OSCLI : $FFF7
+
+Video memory (40x25):
+
+	$0400 ... $0427
+	$0428
+	 ...
+	$07c0 ... $07e7
+
+Video codes:
+	1 = text red		17 = graphics red
+	2 = text green		18 = graphics green
+	3 = text yellow		19 = graphics yellow
+	4 = text blue		20 = graphics blue
+	5 = text magenta	21 = graphics magenta
+	6 = text cyan		22 = graphics cyan
+	7 = text white		23 = graphics white
+
+Keyboard:
+
+	$0e21	Keyboard chip
+
+LFD53:      bit L0E21
+            bpl LFD53
+LFD58:      lda L0E21
+            bmi LFD58
+            cmp #$11
+            beq LFD72
+            cmp #$17
+            beq LFD4F
+            cmp #$01
+            beq LFD4A
+            cmp #$13
+            beq LFD4F
+            cmp #$1A
+            beq LFD4A
+            rts
+
+ASCI codes:
+	x000.0000 - x000.1111	Text control codes
+	x001.0000 - x001.1111	Graphics control codes
+	x010.0000 - x010.1111	Text/graphics
+	x011.0000 - x011.1111	Text/graphics
+	x100.0000 - x100.1111	Text
+	x101.0000 - x101.1111	Text
+	x110.0000 - x110.1111	Text/graphics
+	x111.0000 - x111.1111	Text/graphics
+	  |
+	  +-> b5 = 1 -> semigraphics
+
+Semigraphics 6 mode:
+	b0 b1
+	b2 b3
+	b4 b6
+			   b76543210
+	Filter left  = AND %00010101
+	Filter right = AND %01001010
+
+Graphics:
+	Screen:	80 x 75 (40 x 25 chars)
+	Block:	 4 x  3 ( 2 x  1 chars)
+	Sprite:	 8 x  9 ( 4 x  3 chars)
+	Objects: 8 x  9 ( 4 x  3 chars)
+
+Text:
+	1x Text colour char
+	   Text
+	1x Graphics colour char
+
+Screen:
+	(0,x): Graphics colour
+
+Disc image:
+	 40 tracks, 
+	 10 sec/track, 
+	256 bytes/sec
+
+	Sector 0:	     8 bytes disctitle
+			31 x 8 bytes filenames
+
+	Sector 1:	     5 bytes disctitle
+		 	    1 byte  ptr = 8 x nr filenames
+			     2 bytes nr sectors on disc (lb/hb)
+			31 x 2 bytes load address (lb/hb)
+			     2 bytes exec address (lb/hb)
+			     2 bytes length (lb/hb)
+			     2 bytes sector nr (lb/hb)
+
+	Sector 2-397: 	Data
+
+
+Addressing 6845:
+
+	$0800

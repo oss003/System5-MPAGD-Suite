@@ -1,0 +1,156 @@
+------------------------------------------------------------------------------------------------
+C:\Emulator\MAME264>mame acrnsys3 -listslots
+------------------------------------------------------------------------------------------------
+
+SYSTEM           SLOT NAME        SLOT OPTIONS     SLOT DEVICE NAME
+---------------- ---------------- ---------------- ----------------------------
+acrnsys3         bus1             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus1:8k:rom0     [none]           No options available
+
+                 bus1:8k:rom1     [none]           No options available
+
+                 bus2             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus2:8k:rom0     [none]           No options available
+
+                 bus2:8k:rom1     [none]           No options available
+
+                 bus3             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus4             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus4:fdc:i8271:0 525qd            5.25" quad density floppy drive
+                                  525sd            5.25" single density floppy drive
+                                  525sssd          5.25" single-sided single density floppy drive
+
+                 bus4:fdc:i8271:1 525qd            5.25" quad density floppy drive
+                                  525sd            5.25" single density floppy drive
+                                  525sssd          5.25" single-sided single density floppy drive
+
+                 bus5             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus6             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus7             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+------------------------------------------------------------------------------------------------
+C:\Emulator\MAME264>mame acrnsys5 -listslots
+------------------------------------------------------------------------------------------------
+
+SYSTEM           SLOT NAME        SLOT OPTIONS     SLOT DEVICE NAME
+---------------- ---------------- ---------------- ----------------------------
+acrnsys5         bus1             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus2             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus3             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus4             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus4:fdc:i8271:0 525qd            5.25" quad density floppy drive
+                                  525sd            5.25" single density floppy drive
+                                  525sssd          5.25" single-sided single density floppy drive
+
+                 bus4:fdc:i8271:1 525qd            5.25" quad density floppy drive
+                                  525sd            5.25" single density floppy drive
+                                  525sssd          5.25" single-sided single density floppy drive
+
+                 bus5             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
+                 bus5:econet:econet254 e01              Acorn FileStore E01
+                                  e01s             Acorn FileStore E01S
+
+                 bus6             32k              Acorn 32K Dynamic RAM Board
+                                  8k               Acorn 8K Static Memory Board
+                                  cass             Acorn Cassette Interface
+                                  econet           Acorn Econet Interface
+                                  fdc              Acorn Floppy Disc Controller Board
+                                  vdu40            Acorn 40 Column VDU Interface
+                                  vdu80            Acorn 80x25 VDU Interface
+                                  vib              Acorn Versatile Interface Board
+
