@@ -1609,6 +1609,15 @@ void CreateBlocks( void )
 
 void CreateSprites( void )
 {
+	short int lNibble0;
+	short int rNibble0;
+	short int lNibble1;
+	short int rNibble1;
+	short int lNibble2;
+	short int rNibble2;
+	short int lNibble3;
+	short int rNibble3;
+
 	short int nDataMax;
 	short int nData;
 	unsigned char *cSrc;									/* source pointer. */
@@ -1617,17 +1626,17 @@ void CreateSprites( void )
 	short int nShifts = 0;
 	short int nShiftsMax = 0;
 	short int nLoop = 0;
-	unsigned char cByte[ 3 ];
+	unsigned char cByte[ 5 ];
 	char cFrames[ 256 ];
 
 	/* define max sprite value upon flagB */
 	if (flagB)
 	{
-		nDataMax = 24;
+		nDataMax = 4;	//24;
 	}
 	else
 	{
-		nDataMax = 16;
+		nDataMax = 3;	//16;
 	}
 	/* define max shifts upon flagR */
 	if (flagR)
@@ -1636,7 +1645,7 @@ void CreateSprites( void )
 	}
 	else
 	{
-		nShiftsMax = 4;
+		nShiftsMax = 2;
 	}
 
 
@@ -1667,15 +1676,39 @@ void CreateSprites( void )
 				{
 					cByte[ 0 ] = *cSrc++;
 					cByte[ 1 ] = *cSrc++;
-					cByte[ 2 ] = 0;
+					cByte[ 2 ] = *cSrc++;
+					cByte[ 3 ] = *cSrc++;
+					cByte[ 4 ] = 0;
 
 					for( nLoop = 0; nLoop < nShifts; nLoop++ )		/* pre-shift the sprite */
 					{
-						cByte[ 2 ] = cByte[ 1 ] << 6;
-						cByte[ 1 ] >>= 2;
-						cByte[ 1 ] |= cByte[ 0 ] << 6;
-						cByte[ 0 ] >>= 2;
-						cByte[ 0 ] |= cByte[ 2 ];
+						lNibble0 = (cByte[0] & 0x15) << 1;
+						if (lNibble0 > 31)lNibble0 = lNibble0 + 32;
+						rNibble0 = (cByte[0] & 0x4a) >> 1;
+						if (rNibble0 > 31)rNibble0 = rNibble0 - 32;
+printf("lNibble:%x,%x\n",cByte[0] & 0x15,lNibble0);
+
+
+						lNibble1 = (cByte[1] & 0x15) << 1;
+						if (lNibble1 > 31)lNibble1 = lNibble1 + 32;
+						rNibble1 = (cByte[1] & 0x4a) >> 1;
+						if (rNibble1 > 31)rNibble1 = rNibble1 - 32;
+
+						lNibble2 = (cByte[2] & 0x15) << 1;
+						if (lNibble2 > 31)lNibble2 = lNibble2 + 32;
+						rNibble2 = (cByte[2] & 0x4a) >> 1;
+						if (rNibble2 > 31)rNibble2 = rNibble2 - 32;
+
+						lNibble3 = (cByte[3] & 0x15) << 1;
+						if (lNibble3 > 31)lNibble3 = lNibble3 + 32;
+						rNibble3 = (cByte[3] & 0x4a) >> 1;
+						if (rNibble3 > 31)rNibble3 = rNibble3 - 32;
+
+						cByte[0] = (rNibble3 + lNibble0);
+						cByte[1] = (rNibble0 + lNibble1);
+						cByte[2] = (rNibble1 + lNibble2);
+						cByte[3] = (rNibble2 + lNibble3);
+
 					}
 
 					WriteNumber( cByte[ 0 ] );						/* write byte of data */
@@ -5040,11 +5073,11 @@ void CR_DefineSprite( void )
 	char cChar;
 	short int nDatum = 0;
 	short int nFrames = 0;
-	short int nDataMax = 32;
+	short int nDataMax = 12;
 
 	if (flagB)
 	{
-		nDataMax = 48;
+		nDataMax = 16;
 	}
 
 	if ( nEvent >= 0 && nEvent < NUM_EVENTS )
