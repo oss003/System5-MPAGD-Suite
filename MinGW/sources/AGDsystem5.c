@@ -1632,20 +1632,20 @@ void CreateSprites( void )
 	/* define max sprite value upon flagB */
 	if (flagB)
 	{
-		nDataMax = 4;	//24;
+		nDataMax = 4;	//Rows 24;
 	}
 	else
 	{
-		nDataMax = 3;	//16;
+		nDataMax = 3;	//Rows 16;
 	}
 	/* define max shifts upon flagR */
 	if (flagR)
 	{
-		nShiftsMax = 1;
+		nShiftsMax = 1;	//Nr of shifts
 	}
 	else
 	{
-		nShiftsMax = 2;
+		nShiftsMax = 2;//Nr of shifts
 	}
 
 
@@ -1683,26 +1683,24 @@ void CreateSprites( void )
 					for( nLoop = 0; nLoop < nShifts; nLoop++ )		/* pre-shift the sprite */
 					{
 						lNibble0 = (cByte[0] & 0x15) << 1;
-						if (lNibble0 > 31)lNibble0 = lNibble0 + 32;
+						if (lNibble0 > 31) lNibble0 += 32;
 						rNibble0 = (cByte[0] & 0x4a) >> 1;
-						if (rNibble0 > 31)rNibble0 = rNibble0 - 32;
-printf("lNibble:%x,%x\n",cByte[0] & 0x15,lNibble0);
-
+						if (rNibble0 > 31) rNibble0 -= 16;
 
 						lNibble1 = (cByte[1] & 0x15) << 1;
-						if (lNibble1 > 31)lNibble1 = lNibble1 + 32;
+						if (lNibble1 > 31) lNibble1 = lNibble1 + 32;
 						rNibble1 = (cByte[1] & 0x4a) >> 1;
-						if (rNibble1 > 31)rNibble1 = rNibble1 - 32;
+						if (rNibble1 > 31) rNibble1 = rNibble1 - 16;
 
 						lNibble2 = (cByte[2] & 0x15) << 1;
-						if (lNibble2 > 31)lNibble2 = lNibble2 + 32;
+						if (lNibble2 > 31) lNibble2 = lNibble2 + 32;
 						rNibble2 = (cByte[2] & 0x4a) >> 1;
-						if (rNibble2 > 31)rNibble2 = rNibble2 - 32;
+						if (rNibble2 > 31) rNibble2 = rNibble2 - 16;
 
 						lNibble3 = (cByte[3] & 0x15) << 1;
-						if (lNibble3 > 31)lNibble3 = lNibble3 + 32;
+						if (lNibble3 > 31) lNibble3 = lNibble3 + 32;
 						rNibble3 = (cByte[3] & 0x4a) >> 1;
-						if (rNibble3 > 31)rNibble3 = rNibble3 - 32;
+						if (rNibble3 > 31) rNibble3 = rNibble3 - 16;
 
 						cByte[0] = (rNibble3 + lNibble0);
 						cByte[1] = (rNibble0 + lNibble1);
@@ -1714,6 +1712,10 @@ printf("lNibble:%x,%x\n",cByte[0] & 0x15,lNibble0);
 					WriteNumber( cByte[ 0 ] );						/* write byte of data */
 					WriteText( "," );								/* put a comma */
 					WriteNumber( cByte[ 1 ] );						/* write byte of data */
+					WriteText( "," );								/* put a comma */
+					WriteNumber( cByte[ 2 ] );						/* write byte of data */
+					WriteText( "," );								/* put a comma */
+					WriteNumber( cByte[ 3 ] );						/* write byte of data */
 					if ( nData < nDataMax )
 					{
 						WriteText( "," );							/* more to come; put a comma */
