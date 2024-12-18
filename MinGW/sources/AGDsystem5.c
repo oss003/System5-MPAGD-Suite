@@ -843,7 +843,8 @@ unsigned char cDefaultHop[ 25 ] =
 
 unsigned char cDefaultKeys[ 11 ] =
 {
-	0x35,0x15,0x93,0x22,0x90,0x04,0x14,0x21,0x11,0x01,0x92
+//	R    L    D    U    F    F2   F3   Opt1 Opt2 Opt3 Opt4
+	0x50,0x4f,0x41,0x51,0x20,0x4e,0x4d,0x31,0x32,0x33,0x34
 };
 
 const unsigned char cKeyOrder[ 11 ] =
@@ -1609,6 +1610,10 @@ void CreateBlocks( void )
 
 void CreateSprites( void )
 {
+	short int dByte0;
+	short int dByte1;
+	short int dByte2;
+	short int dByte3;
 	short int lNibble0;
 	short int rNibble0;
 	short int lNibble1;
@@ -1682,6 +1687,8 @@ void CreateSprites( void )
 
 					for( nLoop = 0; nLoop < nShifts; nLoop++ )		/* pre-shift the sprite */
 					{
+						// Horizontal shit 1 pixel
+
 						lNibble0 = (cByte[0] & 0x15) << 1;
 						if (lNibble0 > 31) lNibble0 += 32;
 						rNibble0 = (cByte[0] & 0x4a) >> 1;
@@ -1706,19 +1713,18 @@ void CreateSprites( void )
 						cByte[1] = (rNibble0 + lNibble1);
 						cByte[2] = (rNibble1 + lNibble2);
 						cByte[3] = (rNibble2 + lNibble3);
-
 					}
 
-					WriteNumber( cByte[ 0 ] );						/* write byte of data */
-					WriteText( "," );								/* put a comma */
-					WriteNumber( cByte[ 1 ] );						/* write byte of data */
-					WriteText( "," );								/* put a comma */
-					WriteNumber( cByte[ 2 ] );						/* write byte of data */
-					WriteText( "," );								/* put a comma */
-					WriteNumber( cByte[ 3 ] );						/* write byte of data */
+					WriteNumber( cByte[0] | 0x20);		/* write byte of data */
+					WriteText( "," );				/* put a comma */
+					WriteNumber( cByte[1] | 0x20);		/* write byte of data */
+					WriteText( "," );				/* put a comma */
+					WriteNumber( cByte[2] | 0x20);		/* write byte of data */
+					WriteText( "," );				/* put a comma */
+					WriteNumber( cByte[3] | 0x20);		/* write byte of data */
 					if ( nData < nDataMax )
 					{
-						WriteText( "," );							/* more to come; put a comma */
+						WriteText( "," );			/* more to come; put a comma */
 					}
 				}
 			}
@@ -5470,7 +5476,9 @@ void CR_DefineControls( void )
 
 unsigned char ConvertKey( short int nNum )
 {
-	short int nCode = 40;
+	short int nCode;
+
+	return (nNum);
 
 	/* Convert to upper case. */
 	if ( nNum > 96 && nNum < 123 )
