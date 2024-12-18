@@ -1,0 +1,359 @@
+/* Atomic AGD SCript Compiler                                      */
+/*                                                                 */
+/*   ZX Spectrum/CPC version written by Jonathan Cauldwell         */
+/*   Atom version written by Kees van Oss       2018-2022          */
+/*                                                                 */
+/*   v0.7.10-  ; Initial version                                   */
+/*   v0.7.10a  ; clwflag, CLW code                                 */	
+/*   v0.7.10b  ; bigflag, Bigtext code                             */	
+/*   v0.7.10c  ; crflag, Crumbling blocks                          */
+/*   v0.7.10d  ; xflag, Metablocks (16x16)                         */
+/*   v0.7.10e  ; rflag, RAM Pre-Shifted Tables                     */
+/*   v0.7.10f  ; TICKER accepts variables                          */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+/* Definitions. */
+
+#define LF						0x0a
+#define CR						0x0d
+
+enum
+{
+	EVENT_SPRITE_0,
+	EVENT_SPRITE_1,
+	EVENT_SPRITE_2,
+	EVENT_SPRITE_3,
+	EVENT_SPRITE_4,
+	EVENT_SPRITE_5,
+	EVENT_SPRITE_6,
+	EVENT_SPRITE_7,
+	EVENT_SPRITE_8,
+	EVENT_INITIALISE_SPRITE,
+	EVENT_MAIN_LOOP_1,
+	EVENT_MAIN_LOOP_2,
+	EVENT_INTRO_MENU,
+	EVENT_GAME_INITIALISATION,
+	EVENT_RESTART_SCREEN,
+	EVENT_FELL_TOO_FAR,
+	EVENT_KILL_PLAYER,
+	EVENT_LOST_GAME,
+	EVENT_COMPLETED_GAME,
+	EVENT_NEW_HIGH_SCORE,
+	EVENT_COLLECTED_BLOCK,
+	NUM_EVENTS												/* number of separate events to compile. */
+};
+
+#define MAX_EVENT_SIZE			65536						/* maximum size of compiled event routines. */
+#define NUM_NESTING_LEVELS		12
+#define NUM_REPEAT_LEVELS		3
+#define SNDSIZ				41							/* size of each AY sound. */
+#define NO_ARGUMENT			255
+#define SPRITE_PARAMETER		0
+#define NUMERIC				1
+/* Game engine labels. */
+
+#define PAM1ST				5							/* ix+5 is first sprite parameter. */
+#define X				8							/* ix+8 is x coordinate of sprite. */
+#define Y				9							/* ix+9 is y coordinate of sprite. */
+#define GLOBALS				( VAR_EDGET - SPR_X + X )	/* global variables. */
+#define IDIFF				( SPR_TYP - PAM1ST )		/* diff between type and first sprite param. */
+#define ASMLABEL_DUMMY			1366
+
+
+/* Here's the vocabulary. */
+
+enum
+{
+	INS_IF = 1,
+	INS_WHILE,
+	INS_SPRITEUP,
+	INS_SPRITEDOWN,
+	INS_SPRITELEFT,
+	INS_SPRITERIGHT,
+	INS_ENDIF,
+	INS_ENDWHILE,
+	INS_CANGOUP,
+	INS_CANGODOWN,
+	INS_CANGOLEFT,
+	INS_CANGORIGHT,
+	INS_LADDERABOVE,
+	INS_LADDERBELOW,
+	INS_DEADLY,
+	INS_CUSTOM,
+	INS_TO,
+	INS_FROM,
+	INS_BY,
+
+	FIRST_PARAMETER,
+	SPR_TYP = FIRST_PARAMETER,
+	SPR_IMG,
+	SPR_FRM,
+	SPR_X,
+	SPR_Y,
+	SPR_DIR,
+	SPR_PMA,
+	SPR_PMB,
+	SPR_AIRBORNE,
+	SPR_SPEED,
+
+	FIRST_VARIABLE,
+	VAR_EDGET = FIRST_VARIABLE,
+	VAR_EDGEL,
+	VAR_EDGEB,
+	VAR_EDGER,
+	VAR_SCREEN,
+	VAR_LIV,
+	VAR_A,
+	VAR_B,
+	VAR_C,
+	VAR_D,
+	VAR_E,
+	VAR_F,
+	VAR_G,
+	VAR_H,
+	VAR_I,
+	VAR_J,
+	VAR_K,
+	VAR_L,
+	VAR_M,
+	VAR_N,
+	VAR_O,
+	VAR_P,
+	VAR_Q,
+	VAR_R,
+	VAR_S,
+	VAR_T,
+	VAR_U,
+	VAR_V,
+	VAR_W,
+	VAR_Z,
+	VAR_CONTROL,
+	VAR_LINE,
+	VAR_COLUMN,
+	VAR_CLOCK,
+	VAR_RND,
+	VAR_OBJ,
+	VAR_OPT,
+	VAR_BLOCK,
+	LAST_PARAMETER = VAR_BLOCK,
+
+	INS_GOT,
+	INS_KEY,
+	INS_DEFINEKEY,
+	INS_COLLISION,
+	INS_NUM,												/* number follows this marker. */
+	OPE_EQU,												/* operators. */
+	OPE_GRTEQU,
+	OPE_GRT,
+	OPE_NOT,
+	OPE_LESEQU,
+	OPE_LES,
+	INS_LET,
+	INS_ANIM,
+	INS_ANIMBACK,
+	INS_PUTBLOCK,
+	INS_DIG,
+	INS_NEXTLEVEL,
+	INS_RESTART,
+	INS_SPAWN,
+	INS_REMOVE,
+	INS_GETRANDOM,
+	INS_RANDOMIZE,
+	INS_ELSE,
+	INS_DISPLAYHIGH,
+	INS_DISPLAYSCORE,
+	INS_DISPLAYBONUS,
+	INS_SCORE,
+	INS_BONUS,
+	INS_ADDBONUS,
+	INS_ZEROBONUS,
+	INS_SOUND,
+	INS_BEEP,
+	INS_CRASH,
+	INS_CLS,
+	INS_BORDER,
+	INS_COLOUR,
+	INS_PAPER,
+	INS_INK,
+	INS_CLUT,
+	INS_DELAY,
+	INS_PRINT,
+	INS_PRINTMODE,
+	INS_AT,
+	INS_CHR,
+	INS_MENU,
+	INS_INVENTORY,
+	INS_KILL,
+	INS_ADD,
+	INS_SUB,
+	INS_DISPLAY,
+	INS_SCREENUP,
+	INS_SCREENDOWN,
+	INS_SCREENLEFT,
+	INS_SCREENRIGHT,
+	INS_WAITKEY,
+	INS_JUMP,
+	INS_FALL,
+	INS_TABLEJUMP,
+	INS_TABLEFALL,
+	INS_OTHER,
+	INS_SPAWNED,
+	INS_ORIGINAL,
+	INS_ENDGAME,
+	INS_GET,
+	INS_PUT,
+	INS_REMOVEOBJ,
+	INS_DETECTOBJ,
+	INS_ASM,
+	INS_EXIT,
+	INS_REPEAT,
+	INS_ENDREPEAT,
+	INS_MULTIPLY,
+	INS_DIVIDE,
+	INS_SPRITEINK,
+	INS_TRAIL,
+	INS_LASER,
+	INS_STAR,
+	INS_EXPLODE,
+	INS_REDRAW,
+	INS_SILENCE,
+	INS_CLW,
+	INS_PALETTE,
+	INS_GETBLOCK,
+	INS_PLOT,
+	INS_UNDOSPRITEMOVE,
+	INS_READ,
+	INS_DATA,
+	INS_RESTORE,
+	INS_TICKER,
+	INS_USER,
+	INS_DEFINEPARTICLE,
+	INS_PARTICLEUP,
+	INS_PARTICLEDOWN,
+	INS_PARTICLELEFT,
+	INS_PARTICLERIGHT,
+	INS_DECAYPARTICLE,
+	INS_NEWPARTICLE,
+	INS_MESSAGE,
+	INS_STOPFALL,
+	INS_GETBLOCKS,
+	INS_CONTROLMENU,
+	INS_DOUBLEDIGITS,
+	INS_TRIPLEDIGITS,
+	INS_CLOCK,
+
+	CMP_EVENT,
+	CMP_DEFINEBLOCK,
+	CMP_DEFINEWINDOW,
+	CMP_DEFINESPRITE,
+	CMP_DEFINESCREEN,
+	CMP_SPRITEPOSITION,
+	CMP_DEFINEOBJECT,
+	CMP_MAP,
+	CMP_STARTSCREEN,
+	CMP_WIDTH,
+	CMP_ENDMAP,
+	CMP_DEFINEPALETTE,
+	CMP_DEFINEMESSAGES,
+	CMP_DEFINEFONT,
+	CMP_DEFINEJUMP,
+	CMP_DEFINECONTROLS,
+
+	CON_RIGHT,
+	CON_LEFT,
+	CON_DOWN,
+	CON_UP,
+	CON_FIRE,
+	CON_FIRE2,
+	CON_FIRE3,
+	CON_OPTION1,
+	CON_OPTION2,
+	CON_OPTION3,
+	CON_OPTION4,
+	CON_BULLET,
+	CON_KEYBOARD,
+	CON_JOYKEY,
+	CON_JOYMMC,
+	CON_BPROP0,
+	CON_BPROP1,
+	CON_BPROP2,
+	CON_BPROP3,
+	CON_BPROP4,
+	CON_BPROP5,
+	CON_BPROP6,
+	CON_BPROP7,
+	CON_BPROP8,
+	CON_BPROP9,
+	CON_FAST,
+	CON_MEDIUM,
+	CON_SLOW,
+	CON_VERYSLOW,
+
+	CON_PLAYER,
+	CON_TYPE1,
+	CON_TYPE2,
+	CON_TYPE3,
+	CON_TYPE4,
+	CON_TYPE5,
+	CON_TYPE6,
+	CON_TYPE7,
+	CON_TYPE8,
+	CON_TYPE9,
+	CON_TYPE10,
+	CON_TYPE11,
+	CON_TYPE12,
+	CON_TYPE13,
+	CON_TYPE14,
+	CON_TYPE15,
+	CON_TYPE16,
+	CON_TYPE17,
+	CON_TYPE18,
+	CON_TYPE19,
+	CON_TYPE20,
+	LAST_CONSTANT,
+	FINAL_INSTRUCTION = LAST_CONSTANT,
+	INS_STR
+};
+
+
+/****************************************************************************************************************/
+/* Function prototypes.                                                                                         */
+/****************************************************************************************************************/
+
+void StartEvent( unsigned short int nEvent );
+void BuildFile( void );
+void EndEvent( void );
+void EndDummyEvent( void );
+void CreateMessages( void );
+void CreateBlocks( void );
+void CreateSprites( void );
+void CreateScreens( void );
+void CreatePositions( void );
+void CreateObjects( void );
+void CreatePalette( void );
+void CreateFont( void );
+void CreateHopTable( void );
+void CreateKeyTable( void );
+unsigned short int NextKeyword( void );
+void CountLines( char cSrc );
+unsigned short int GetNum( short int nBits );
+void Compile( unsigned short int nInstruction );
+void ResetIf( void );
+void CR_If( void );
+void CR_While( void );
+void CR_SpriteUp( void );
+void CR_SpriteDown( void );
+void CR_SpriteLeft( void );
+void CR_SpriteRight( void );
+void CR_EndIf( void );
+void CR_EndWhile( void );
+void CR_CanGoUp( void );
+void CR_CanGoDown( void );
+void CR_CanGoLeft( void );
+void CR_CanGoRight( void );
+void CR_LadderAbove( void );
+void CR_Ladde

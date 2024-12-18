@@ -1,0 +1,208 @@
+****************************************************************************************/
+/* We've hit a loose numeric value, so it's an argument for something.                                          */
+/* We need to establish how it fits in to the code.                                                             */
+/****************************************************************************************************************/
+void CR_Arg( void )
+{
+	if ( nPamType == 255 )									/* this is the first argument we've found. */
+	{
+		nPamType = NUMERIC;									/* set flag to say we've found a number. */
+		nPamNum = GetNum( 8 );
+	}
+	else													/* this is the second argument. */
+	{
+		if ( nIfSet > 0 )									/* we're in an IF or WHILE. */
+		{
+			CR_ArgA( GetNum( 8 ) );							/* compile code to set up this argument. */
+
+			if ( nPamType == NUMERIC )
+			{
+				CR_ArgB( nPamNum );							/* compile second argument: numeric. */
+				CR_StackIf();
+			}
+
+			if ( nPamType == SPRITE_PARAMETER )
+			{
+				CR_PamB( nPamNum );							/* compile second argument: variable or sprite parameter. */
+				CR_StackIf();
+			}
+		}
+		else												/* not a comparison, so we're setting a sprite parameter. */
+		{
+			if ( nPamType == SPRITE_PARAMETER )
+			{
+				CR_ArgA( GetNum( 8 ) );						/* compile second argument: variable or sprite parameter. */
+				CR_PamC( nPamNum );							/* compile code to set variable or sprite parameter. */
+			}
+			else											/* trying to assign a number to another number. */
+			{
+				GetNum( 16 );								/* ignore the number. */
+			}
+			ResetIf();
+		}
+	}
+}
+
+/****************************************************************************************************************/
+/* We've hit a loose variable or sprite parameter, so it's an argument for something.                           */
+/* We need to establish how it fits in to the code.                                                             */
+/****************************************************************************************************************/
+void CR_Pam( unsigned short int nParam )
+{
+	if ( nPamType == 255 )									/* this is the first argument we've found. */
+	{
+		nPamType = SPRITE_PARAMETER;
+		nPamNum = nParam;
+	}
+	else													/* this is the second argument. */
+	{
+		if ( nIfSet > 0 )									/* we're in an IF. */
+		{
+			CR_PamA( nParam );								/* compile second argument: variable or sprite parameter. */
+			if ( nPamType == SPRITE_PARAMETER )
+			{
+				CR_PamB( nPamNum );							/* compare with first argument. */
+			}
+			else
+			{
+				CR_ArgB( nPamNum );							/* compare with first argument. */
+			}
+			CompileCondition();
+//			WriteText( "\n:" );
+			ResetIf();
+		}
+		else												/* not an IF, we must be assigning a value. */
+		{
+			if ( nPamType == SPRITE_PARAMETER )
+			{
+				CR_PamA( nParam );							/* set up the value. */
+				CR_PamC( nPamNum );
+			}
+			else
+			{
+				ResetIf();
+			}
+		}
+	}
+}
+
+
+/****************************************************************************************************************/
+/* CR_ArgA, CR_PamA compile code to put the number or parameter in the accumulator.                             */
+/* CR_ArgB, CR_PamB compile code to compare the number or parameter with the number already in the accumulator. */
+/****************************************************************************************************************/
+void CR_ArgA( short int nNum )
+{
+	if ( nNum == 0 )
+	{
+		WriteInstruction( "lda #0" );
+	}
+	else
+	{
+		WriteInstruction( "lda #" );
+		WriteNumber( nNum );
+	}
+}
+
+void CR_ArgB( short int nNum )
+{
+	WriteInstruction( "cmp #" );
+	WriteNumber( nNum );
+	WriteJPNZ();
+}
+
+void CR_PamA( short int nNum )
+{
+	char cVar[ 14 ];
+
+	if ( nNum >= FIRST_VARIABLE )							/* load accumulator with global variable. */
+	{
+		sprintf( cVar, "lda %s", cVariables[ nNum - FIRST_VARIABLE ] );
+		WriteInstruction( cVar );
+	}
+	else													/* load accumulator with sprite parameter. */
+	{
+		WriteInstructionArg( "ldy #?", nNum - IDIFF );
+		WriteInstruction( "lda (z80_ix),y" );
+	}
+}
+
+void CR_PamB( short int nNum )
+{
+	char cVar[ 13 ];
+
+	if ( nNum >= FIRST_VARIABLE )							/* compare accumulator with global variable. */
+	{
+		sprintf( cVar, "cmp %s", cVariables[ nNum - FIRST_VARIABLE ] );
+		WriteInstruction( cVar );
+	}
+	else													/* compare accumulator with sprite parameter. */
+	{
+		WriteInstructionArg( "ldy #?", nNum - IDIFF );
+		WriteInstruction( "cmp (z80_ix),y" );
+	}
+
+	WriteJPNZ();											/* write conditional jump at end of if. */
+}
+
+void CR_PamC( short int nNum )
+{
+	char cVar[ 14 ];
+
+	if ( nNum >= FIRST_VARIABLE )							/* compare accumulator with global variable. */
+	{
+		sprintf( cVar, "sta %s", cVariables[ nNum - FIRST_VARIABLE ] );
+		WriteInstruction( cVar );
+
+		if ( nNum == VAR_SCREEN )							/* is this code changing the screen? */
+		{
+			WriteInstruction( "jsr nwscr" );				/* address of routine to display the new screen. */
+		}
+	}
+	else													/* compare accumulator with sprite parameter. */
+	{
+		WriteInstructionArg( "ldy #?", nNum - IDIFF );
+		WriteInstruction( "sta (z80_ix),y" );
+	}
+}
+
+
+void CR_StackIf( void )
+{
+	CompileCondition();
+	ResetIf();
+}
+
+/****************************************************************************************************************/
+/* Converts up/down/left/right to Kempston joystick right/left/down/up.                                         */
+/****************************************************************************************************************/
+short int Joystick( short int nArg )
+{
+	short int nArg2;
+
+//	switch( nArg )										/* conversion to Kempston bit order. */
+//	{
+//		case 0:
+//			nArg2 = 0;
+//			break;
+//		case 1:
+//			nArg2 = 1;
+//			break;
+//		case 2:
+//			nArg2 = 2;
+//			break;
+//		case 3:
+//			nArg2 = 3;
+//			break;
+//		default:
+			nArg2 = nArg;
+//			break;
+//	}
+//
+	return ( nArg2 );
+}
+
+/****************************************************************************************************************/
+/* We don't yet know where we want to jump following the condition, so remember address where label will be     */
+/* written when we have that address.                                                                           */
+/******

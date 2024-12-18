@@ -111,7 +111,7 @@ DEFINEFONT      0 0 0 0 0 0 0 0
 ; Block 0
 
 DEFINEBLOCK     EMPTYBLOCK      ; property
-                0 0 0 0 0 0 0 0 56                                      ; Spectrum.
+                0 0                                   ; Spectrum.
 
 ; Sprites
 ; First argument defines the number of frames
@@ -154,7 +154,7 @@ DEFINESCREEN
 ; SPRITEPOSITION requires 4 numbers for image, type, Y coordinate and X coordinate in that order
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
-SPRITEPOSITION 0,0,88,128
+SPRITEPOSITION 0,0,200,128
 
 
 ; Define objects
@@ -243,7 +243,6 @@ EVENT MAINLOOP1
  PRINT "SECONDS:   :"
  AT 9 11
  DISPLAY SECONDS CLOCK
- PRINT "  "
 
  LET A=5
  AT 11,1
@@ -274,4 +273,6 @@ EVENT LOSTGAME
 
 EVENT COMPLETEDGAME
 
-EVENT NEWHIG
+EVENT NEWHIGHSCORE
+
+EVENT COLLECTBLOCK

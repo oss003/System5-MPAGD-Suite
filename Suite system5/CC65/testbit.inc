@@ -1782,23 +1782,17 @@ setsat:
 	lda #>ScreenAddr
 	sta scraddr+1
 
-	ldx #0
 	ldy #0			; vertical lines on screen.
 setsa0:
 	lda scraddr
 	sta SCADTB_lb,y		; write low byte.
 	lda scraddr+1
-	cpy #ScrHeight*3		; vertical lines on screen.
+	cpy #ScrHeight		; vertical lines on screen.
 	bcc :+
 	ora #$F0		; plot sprites in rom if of screen
 :
 	sta SCADTB_hb,y		; write high byte.
-	inx
-	cpx #3
-	bne :+
 	jsr nline		; next line down.
-	ldx #0
-:
 	iny			; next position in table.
 	bne setsa0
 	
@@ -2916,12 +2910,7 @@ swpsb0:
 ;----------------------------------------------------
 
 gprad:
-	lda dispy
-	sta tmp
-	asl a
-	clc
-	adc tmp
-	tay
+	ldy dispy
 	lda SCADTB_lb,y
 	clc
 	adc dispx
@@ -4628,72 +4617,30 @@ gsprad:
 	lda (z80_ix),y 		; sprite image.
 	jsr gfrm 		; fetch start frame for this sprite.
 
-; z80_hl = sprite framenr
-
 	ldy #0
 	lda (z80_hl),y 		; frame in accumulator.
-
-; z80_ix+2 = current framenr
-
 	ldy #2
 	clc
 	adc (z80_ix),y 		; add frame number.
-
-; A = sprite framenr + current framenr
-; 
-; framestartaddress = 24 * A (Normal 4 x 32 = 128)
-; frameoffset =  + 6 * (x and 2)   (Normal steps of 32)
-; framedataptr = framestartaddress + frameoffset + sprgfx
-
 gspra0:
-
-; framestartaddress = 24 * sprite image (Normal 4 x 32 = 128)
-	
-	sta z80_e
-	lda #0
-	sta z80_d
-
-	asl z80_e		; a x 8
-	rol z80_d
-	asl z80_e
-	rol z80_d
-	asl z80_e
-	rol z80_d
-
-	lda z80_e		; save a x 8
+	lsr a	  		; multiply by 128.
+	sta z80_d 		; store in d.
 	sta tmp1
-	lda z80_d
+	lda #0
+	ror a
+	sta z80_e 		; got low byte.
 	sta tmp2
-
-	asl z80_e		; a x 16
-	rol z80_d
-
-	clc			; z80_de = ax8 + ax16 = ax24
-	lda z80_e
-	adc tmp1
+.if bflag
+	lsr tmp1
+	ror tmp2
+	clc
+	lda tmp2
+	adc z80_e
 	sta z80_e
-	lda z80_d
-	adc tmp2
+	lda tmp1
+	adc z80_d
 	sta z80_d
-
-;	lsr a	  		; multiply by 128.
-;	sta z80_d 		; store in d.
-;	sta tmp1
-;	lda #0
-;	ror a
-;	sta z80_e 		; got low byte.
-;	sta tmp2
-;.if bflag
-;	lsr tmp1
-;	ror tmp2
-;	clc
-;	lda tmp2
-;	adc z80_e
-;	sta z80_e
-;	lda tmp1
-;	adc z80_d
-;	sta z80_d
-;.endif
+.endif
 	clc 			; address of play sprites.
 	lda z80_e
 	adc #<sprgfx
@@ -4702,26 +4649,27 @@ gspra0:
 	adc #>sprgfx
 	sta z80_d
 
-; frameoffset =  + 6 * (x and 2) (steps of 32)
-
 	lda dispx 		; y coordinate.
-	and #2			;6	; position within byte boundary.
+	and #6 			; position within byte boundary.
 	tax	 		; low byte of table displacement.
 
-	asl a	  		; a*2
+	asl a	  		; multiply by 32.
+	asl a  			; already a multiple
+	asl a  			; of 2, so just 4
+.if bflag
 	sta tmp1
-
-	asl a  			; a*4
+	asl a  			; shifts needed.
 	clc
 	adc tmp1
-	adc z80_e 		; add to sprite address.
+.else
+	asl a  			; shifts needed.
+.endif
+	clc 			; add to sprite address.
+	adc z80_e
 	sta z80_e
 	bcc :+
 	inc z80_d
 :
-
-; Spritemask is z80_c = mask_left and z80_b = mask_right
-
 	lda spmask,x		 ; pointer to mask table.
 	sta z80_c 		; left mask.
 	lda spmask+1,x
@@ -4734,14 +4682,14 @@ gspra0:
 
 scadd:
 	ldx dispy
-	cpx #76
+	cpx #192
 	bcc :+
-	ldx #76
+	ldx #192
 :
 	lda dispx
 	lsr a
-;	lsr a
-;	lsr a
+	lsr a
+	lsr a
 	clc
 	adc SCADTB_lb,x
 	sta scraddr
@@ -4749,14 +4697,10 @@ scadd:
 	sta scraddr+1
 	rts
 
-spmask:
-	.byte $ff,$00
-	.byte $35,$65
-
-;	.byte $ff,$00
-;	.byte $3f,$c0
-;	.byte $0f,$f0
-;	.byte $03,$fc
+spmask:	.byte $ff,$00
+	.byte $3f,$c0
+	.byte $0f,$f0
+	.byte $03,$fc
 
 tmp1:	.byte 0
 tmp2:	.byte 0
@@ -4835,6 +4779,7 @@ ssprib:
 ;-----------------------------------------------------------------
 
 sspric:
+rts
 	jsr gsprad 		; get old sprite address.
 				; z80_de = old sprite address
 	lda z80_e
@@ -4868,14 +4813,38 @@ lloop:
 	jsr dline 		; draw a line.
 	dex
 	dex
-	dex
-	dex
 	jsr ddline 		; delete a line.
 
-.if bflag
-	cpx #16			; Detect end of line 3
-.else
+	cpx #4			; detect end of line 0
+	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
+	inc scraddr+1		; jump to next blockline
+:
+	cpx #8			; detect end of line 1
+	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
+	inc scraddr+1		; jump to next blockline
+:
 	cpx #12			; Detect end of line 2
+
+.if bflag
+	bne :+			; skip if not
+	lda scraddr		; Point to 1 line down
+	clc
+	adc #ScrWidth
+	sta scraddr
+	bcc :+
+	inc scraddr+1		; jump to next blockline
+:
+	cpx #16			; Detect end of line 3
 .endif
 	bne lloop		; no, repeat
 	ldx xtmp
@@ -4918,6 +4887,8 @@ dline2c:
 	and z80_b		; mask right
 	eor (scraddr),y		; merge with screenright
 	sta (scraddr),y		; write screenright
+sline3:
+	inx			; next spritebyte
 
 	rts
 
@@ -4954,6 +4925,13 @@ ddline2c:
 	inx			; next spritebyte
 	iny			; point to screenright
 
+ddline2d:
+	lda objdta,x		; fetch spritemiddle byte
+	eor (z80_hlp),y		; merge with screenmiddle
+	sta (z80_hlp),y		; write spritedata4
+	iny			; point to screenright
+	inx			; next spritebyte
+
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
 	eor (z80_hlp),y		; merge with screenright
@@ -4962,10 +4940,10 @@ ddline2c:
 	rts
 
 sprline:
-	.byte $00,$01,$02,$03
-	.byte $28,$29,$2a,$2b
-	.byte $50,$51,$52,$53
-	.byte $78,$79,$7a,$7b
+	.byte $00,$01,$02,$03,$04
+	.byte $28,$29,$2a,$2b,$2c
+	.byte $50,$51,$52,$53,$54
+	.byte $78,$79,$7a,$7b,$7c
 
 ;----------------------------------------------------------------------
 ; Line drawn, now work out next target address.
@@ -6186,3 +6164,497 @@ fcolour:	.byte t_white
 bcolour:	.byte g_white
 
 ; Everything below here will be generated by the editors.
+
+        rts
+WINDOWTOP = 1
+WINDOWLFT = 1
+WINDOWHGT = 22
+WINDOWWID = 30 ;a
+MAPWID = 3
+        .byte 255,255,255
+mapdat:
+        .byte 255,0,255
+        .byte 255,255,255
+stmap:  .byte 1
+
+evnt00:
+        rts
+evnt01:
+        rts
+evnt02:
+        rts
+evnt03:
+        rts
+evnt04:
+        rts
+evnt05:
+        rts
+evnt06:
+        rts
+evnt07:
+        rts
+evnt08:
+        rts
+evnt09:
+        rts
+evnt10:
+        lda #170
+        sta vara
+        lda #0		; AT
+        sta chary
+        lda #1
+        sta charx
+        lda #1		; PRINTMODE
+        sta prtmod
+        lda #0		; PRINT
+        jsr dmsg
+        lda vara	; DISPLAY
+        jsr disply
+        lda #0		; PRINTMODE
+        sta prtmod
+        lda vara
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #3		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00189
+        lda #1		; PRINT
+        jsr dmsg
+        jmp k00199
+k00189: lda #2		; PRINT
+        jsr dmsg
+k00199: lda vara
+        sta vari
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #4		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00327
+        lda #3		; PRINT
+        jsr dmsg
+        jmp k00337
+k00327: lda #4		; PRINT
+        jsr dmsg
+k00337: lda vara
+        sta vari
+        lda vari
+        lsr a
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #5		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00468
+        lda #5		; PRINT
+        jsr dmsg
+        jmp k00478
+k00468: lda #6		; PRINT
+        jsr dmsg
+k00478: lda vara
+        sta vari
+        lda vari
+        lsr a
+        lsr a
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #6		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00613
+        lda #7		; PRINT
+        jsr dmsg
+        jmp k00623
+k00613: lda #8		; PRINT
+        jsr dmsg
+k00623: lda vara
+        sta vari
+        lda vari
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #7		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00761
+        lda #9		; PRINT
+        jsr dmsg
+        jmp k00771
+k00761: lda #10		; PRINT
+        jsr dmsg
+k00771: lda vara
+        sta vari
+        lda vari
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #8		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k00913
+        lda #11		; PRINT
+        jsr dmsg
+        jmp k00924
+k00913: lda #12		; PRINT
+        jsr dmsg
+k00924: lda vara
+        sta vari
+        lda vari
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #9		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k01069
+        lda #13		; PRINT
+        jsr dmsg
+        jmp k01079
+k01069: lda #14		; PRINT
+        jsr dmsg
+k01079: lda vara
+        sta vari
+        lda vari
+        asl a
+        rol a
+        and #1
+        sta vari
+        lda vari
+        sta varj
+        lda vari
+        lsr a
+        sta vari
+        lda vari
+        asl a
+        sta vari
+        lda vari
+        sta z80_c
+        lda varj
+        sec
+        sbc z80_c
+        sta varj
+        lda #10		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #0
+        cmp varj
+        bcc *+5
+        jmp k01215
+        lda #15		; PRINT
+        jsr dmsg
+        jmp k01225
+k01215: lda #16		; PRINT
+        jsr dmsg
+k01225: lda #11		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #17		; PRINT
+        jsr dmsg
+        lda #1
+        sta varb
+        lda varb	; DISPLAY
+        jsr disply
+        jsr prskey	; WAITKEY
+        rts
+evnt11:
+        rts
+evnt12:
+        jsr cls		; CLS
+        rts
+evnt13:
+        rts
+evnt14:
+        rts
+evnt15:
+        rts
+evnt16:
+        rts
+evnt17:
+        rts
+evnt18:
+        rts
+evnt19:
+        rts
+evnt20:
+        rts
+ptcusr: rts
+msgdat:
+        .byte "BIT TEST:",160
+        .byte "BIT0 SE",212
+        .byte "BIT0 CLEA",210
+        .byte "BIT1 SE",212
+        .byte "BIT1 CLEA",210
+        .byte "BIT2 SE",212
+        .byte "BIT2 CLEA",210
+        .byte "BIT3 SE",212
+        .byte "BIT3 CLEA",210
+        .byte "BIT4 SE",212
+        .byte "BIT4 CLEA",210
+        .byte "BIT5 SE",212
+        .byte "BIT5 CLEA",210
+        .byte "BIT6 SE",212
+        .byte "BIT6 CLEA",210
+        .byte "BIT7 SE",212
+        .byte "BIT7 CLEA",210
+        .byte "O",203
+nummsg:
+        .byte 18
+chgfx:
+        .byte 0,0
+bprop:
+        .byte 0
+sprgfx:
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+frmlst:
+        .byte 0,1,1,0
+scdat:
+        .word 9
+        .byte 255,0,0,255,0,0,255,0,148
+numsc:
+        .byte 1
+nmedat:
+        .byte 0,0,88,128,255
+NUMOBJ = 1
+objdta:
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,32,0,160,32
+font:
+        .byte 0,0,0,0,0,0,0,0
+        .byte 0,48,48,48,48,0,48,0
+        .byte 0,108,108,0,0,0,0,0
+        .byte 0,108,254,108,108,254,108,0
+        .byte 0,24,126,120,126,30,126,24
+        .byte 0,230,236,24,48,110,206,0
+        .byte 0,48,120,48,126,204,126,0
+        .byte 0,24,48,0,0,0,0,0
+        .byte 0,12,24,24,24,24,12,0
+        .byte 0,96,48,48,48,48,96,0
+        .byte 0,0,60,24,126,24,60,0
+        .byte 0,0,24,24,126,24,24,0
+        .byte 0,0,0,0,0,24,24,48
+        .byte 0,0,0,0,126,0,0,0
+        .byte 0,0,0,0,0,56,56,0
+        .byte 0,0,6,12,24,48,96,0
+        .byte 0,124,206,222,246,230,124,0
+        .byte 0,56,120,24,24,24,126,0
+        .byte 0,124,198,6,124,192,254,0
+        .byte 0,124,198,28,6,198,124,0
+        .byte 0,24,56,120,216,254,24,0
+        .byte 0,254,192,252,6,198,124,0
+        .byte 0,124,192,252,198,198,124,0
+        .byte 0,254,6,12,24,48,48,0
+        .byte 0,124,198,124,198,198,124,0
+        .byte 0,124,198,198,126,6,124,0
+        .byte 0,0,0,48,0,0,48,0
+        .byte 0,0,48,0,0,48,48,96
+        .byte 0,0,12,24,48,24,12,0
+        .byte 0,0,0,126,0,126,0,0
+        .byte 0,0,48,24,12,24,48,0
+        .byte 0,124,198,12,24,0,24,0
+        .byte 0,124,222,254,254,192,124,0
+        .byte 0,124,198,198,254,198,198,0
+        .byte 0,252,198,252,198,198,252,0
+        .byte 0,124,198,192,192,198,124,0
+        .byte 0,248,204,198,198,204,248,0
+        .byte 0,254,192,252,192,192,254,0
+        .byte 0,254,192,252,192,192,192,0
+        .byte 0,124,198,192,222,198,124,0
+        .byte 0,198,198,254,198,198,198,0
+        .byte 0,126,24,24,24,24,126,0
+        .byte 0,6,6,6,198,198,124,0
+        .byte 0,204,216,240,216,204,198,0
+        .byte 0,192,192,192,192,192,254,0
+        .byte 0,198,238,254,198,198,198,0
+        .byte 0,198,230,246,222,206,198,0
+        .byte 0,124,198,198,198,198,124,0
+        .byte 0,252,198,198,252,192,192,0
+        .byte 0,124,198,198,246,222,124,0
+        .byte 0,252,198,198,252,204,198,0
+        .byte 0,124,192,124,6,198,124,0
+        .byte 0,254,48,48,48,48,48,0
+        .byte 0,198,198,198,198,198,124,0
+        .byte 0,198,198,198,198,108,56,0
+        .byte 0,198,198,198,198,254,108,0
+        .byte 0,198,108,56,56,108,198,0
+        .byte 0,134,204,120,48,48,48,0
+        .byte 0,254,12,24,48,96,254,0
+        .byte 0,30,24,24,24,24,30,0
+        .byte 0,0,192,96,48,24,12,0
+        .byte 0,240,48,48,48,48,240,0
+        .byte 0,48,120,252,48,48,48,0
+        .byte 0,0,0,0,0,0,0,255
+        .byte 0,60,102,248,96,96,254,0
+        .byte 0,0,120,12,124,204,124,0
+        .byte 0,96,96,124,102,102,124,0
+        .byte 0,0,60,96,96,96,60,0
+        .byte 0,12,12,124,204,204,124,0
+        .byte 0,0,120,204,248,192,124,0
+        .byte 0,28,48,56,48,48,48,0
+        .byte 0,0,124,204,204,124,12,120
+        .byte 0,192,192,248,204,204,204,0
+        .byte 0,48,0,112,48,48,120,0
+        .byte 0,12,0,12,12,12,108,56
+        .byte 0,96,120,112,112,120,108,0
+        .byte 0,48,48,48,48,48,28,0
+        .byte 0,0,248,252,252,252,252,0
+        .byte 0,0,248,204,204,204,204,0
+        .byte 0,0,120,204,204,204,120,0
+        .byte 0,0,248,204,204,248,192,192
+        .byte 0,0,124,204,204,124,12,14
+        .byte 0,0,60,96,96,96,96,0
+        .byte 0,0,120,192,120,12,248,0
+        .byte 0,48,120,48,48,48,28,0
+        .byte 0,0,204,204,204,204,120,0
+        .byte 0,0,204,204,120,120,48,0
+        .byte 0,0,204,252,252,252,120,0
+        .byte 0,0,204,120,48,120,204,0
+        .byte 0,0,204,204,204,124,12,120
+        .byte 0,0,252,24,48,96,252,0
+        .byte 0,30,24,112,24,24,30,0
+        .byte 0,24,24,24,24,24,24,0
+        .byte 0,240,48,28,48,48,240,0
+        .byte 0,60,120,0,0,0,0,0
+        .byte 124,198,187,227,227,187,198,124
+jtab:
+        .byte 99
+keys:   .byte 53,21,147,34,144,4,20,33,17,1,146
