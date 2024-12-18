@@ -4702,26 +4702,40 @@ gspra0:
 	adc #>sprgfx
 	sta z80_d
 
-; frameoffset =  + 6 * (x and 2) (steps of 32)
+; frameoffset =  + 12 * (x and 1) (steps of 32)
 
-	lda dispx 		; y coordinate.
-	and #2			;6	; position within byte boundary.
-	tax	 		; low byte of table displacement.
-
-	asl a	  		; a*2
-	sta tmp1
-
-	asl a  			; a*4
-	clc
-	adc tmp1
-	adc z80_e 		; add to sprite address.
+	lda dispx 		; x coordinate.
+	and #1
+	beq no_shift
+	clc			; Point to odd frame
+	lda z80_e
+	adc #12
 	sta z80_e
 	bcc :+
 	inc z80_d
 :
+no_shift:
+;	and #2			;6	; position within byte boundary.
+;	tax	 		; low byte of table displacement.
+
+;	asl a	  		; a*2
+;	sta tmp1
+
+;	asl a  			; a*4
+;	clc
+;	adc tmp1
+;	adc z80_e 		; add to sprite address.
+;	sta z80_e
+;	bcc :+
+;	inc z80_d
+;:
 
 ; Spritemask is z80_c = mask_left and z80_b = mask_right
 
+	lda dispx
+	and #1
+	asl a
+	tax
 	lda spmask,x		 ; pointer to mask table.
 	sta z80_c 		; left mask.
 	lda spmask+1,x
