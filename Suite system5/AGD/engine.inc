@@ -4747,15 +4747,17 @@ no_shift:
 ;------------------------------------------------------------------
 
 scadd:
+
+; Check for bottom of screen
+
 	ldx dispy
 	cpx #76
 	bcc :+
 	ldx #76
 :
+
 	lda dispx
 	lsr a
-;	lsr a
-;	lsr a
 	clc
 	adc SCADTB_lb,x
 	sta scraddr
@@ -4765,12 +4767,7 @@ scadd:
 
 spmask:
 	.byte $ff,$00
-	.byte $35,$65
-
-;	.byte $ff,$00
-;	.byte $3f,$c0
-;	.byte $0f,$f0
-;	.byte $03,$fc
+	.byte $6a,$35
 
 tmp1:	.byte 0
 tmp2:	.byte 0
@@ -4799,36 +4796,11 @@ sspri2:
 	ldx #0			; vertical lines.
 sspri0:
 	jsr dline		; draw a line.
-	cpx #4			; detect end of line 0
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #8			; detect end of line 1
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #12			; Detect end of line 2
 
 .if bflag
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
 	cpx #16			; Detect end of line 3
+.else
+	cpx #12			; Detect end of line 2
 .endif
 
 	bne sspri0		; no, repeat
@@ -4930,6 +4902,7 @@ dline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_b		; mask right
+	ora #$20		; Set bit 5
 	eor (scraddr),y		; merge with screenright
 	sta (scraddr),y		; write screenright
 
@@ -4945,6 +4918,7 @@ ddline1:
 
 	lda z80_a
 	and z80_cp		; mask left
+	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
 	sta (z80_hlp),y		; write spritedata0
 	inx			; next spritebyte
@@ -4970,6 +4944,7 @@ ddline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
+	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenright
 	sta (z80_hlp),y		; write spritedata5
 
