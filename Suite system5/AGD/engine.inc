@@ -51,7 +51,7 @@
 	.out "- Adventure mode enabled" 
 .endif
 .if bflag
-	.out "- Big Sprites (16x24) enabled" 
+	.out "- Big Sprites (8x12) enabled" 
 .endif
 .if gflag
 	.out "- Colourmode enabled" 
@@ -165,8 +165,8 @@ numob:		.byte NUMOBJ	; number of objects in game.
 
 wntopx:		.byte (8 * WINDOWTOP)
 wnlftx:		.byte (8 * WINDOWLFT)
-wnbotx:		.byte ((WINDOWTOP * 8) + (WINDOWHGT * 8) - 16)
-wnrgtx:		.byte ((WINDOWLFT * 8) + (WINDOWWID * 8) - 16)-2
+wnbotx:		.byte ((WINDOWTOP * 2) + (WINDOWHGT * 3) - 12)
+wnrgtx:		.byte ((WINDOWLFT * 2) + (WINDOWWID * 3) - 12)-2
 
 ; Assorted game routines which can go in contended memory.
 
@@ -4676,13 +4676,6 @@ gspra0:
 	adc tmp2
 	sta z80_d
 
-;	lsr a	  		; multiply by 128.
-;	sta z80_d 		; store in d.
-;	sta tmp1
-;	lda #0
-;	ror a
-;	sta z80_e 		; got low byte.
-;	sta tmp2
 ;.if bflag
 ;	lsr tmp1
 ;	ror tmp2
@@ -4694,6 +4687,7 @@ gspra0:
 ;	adc z80_d
 ;	sta z80_d
 ;.endif
+
 	clc 			; address of play sprites.
 	lda z80_e
 	adc #<sprgfx
@@ -4714,24 +4708,9 @@ gspra0:
 	bcc :+
 	inc z80_d
 :
-no_shift:
-;	and #2			;6	; position within byte boundary.
-;	tax	 		; low byte of table displacement.
-
-;	asl a	  		; a*2
-;	sta tmp1
-
-;	asl a  			; a*4
-;	clc
-;	adc tmp1
-;	adc z80_e 		; add to sprite address.
-;	sta z80_e
-;	bcc :+
-;	inc z80_d
-;:
-
 ; Spritemask is z80_c = mask_left and z80_b = mask_right
 
+no_shift:
 	lda dispx
 	and #1
 	asl a
@@ -4746,10 +4725,9 @@ no_shift:
 ; This routine returns a screen address for (dispx, dispy) in scraddr.
 ;------------------------------------------------------------------
 
-scadd:
-
 ; Check for bottom of screen
 
+scadd:
 	ldx dispy
 	cpx #76
 	bcc :+
@@ -4878,24 +4856,28 @@ dline1:
 	lda z80_a
 	and z80_c		; mask left
 	eor (scraddr),y		; merge with screenleft
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenleft
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2b:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2c:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
@@ -4920,24 +4902,28 @@ ddline1:
 	and z80_cp		; mask left
 	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata1
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2b:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata2
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2c:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata3
 	inx			; next spritebyte
 	iny			; point to screenright
@@ -4946,6 +4932,7 @@ ddline2c:
 	and z80_bp		; mask right
 	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenright
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata5
 
 	rts
@@ -5125,7 +5112,7 @@ colc16:
 	clc
 	adc #1
 colc1a:
-	cmp #16 				; within x range?
+	cmp #SPR_WID				; within x range?
 	bcs sktyp1				; no - they"ve missed.
 	sta z80_c				; store difference.
 
@@ -5138,11 +5125,11 @@ colc1a:
 	clc
 	adc #1
 colc1b:
-	cmp #16					; within y range?
+	cmp #SPR_HGT					; within y range?
 	bcs sktyp1 				; no - they've missed.
 	clc					; add x difference.
 	adc z80_c
-	cmp #26					; only 5 corner pixels touching?
+	cmp #12					; only 5 corner pixels touching?
 	bcs :+
 	sec
 	rts 					; carry set if there's a collision.
