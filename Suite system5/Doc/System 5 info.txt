@@ -23,10 +23,13 @@ Memory map:
 	4000	4kB 	RAM1
 	3000	4kB 	RAM1
 	2000	4kB 	RAM1
-
+	  1940	 5B	Econet
 	1800	2kB	????
 	1000	2kB	Video RAM (80x25)
-	0800	2 kB	I/O	
+	  0E20	16B	VIA
+	  0A00	 4B	Floppy disk controller
+	  0800	 2B	6845
+	0800	2kB	I/O	
 	0400	1kB	Video RAM (40x25)
 	0000	1kB	ZP RAM + WS
 
@@ -63,7 +66,15 @@ Video codes:
 
 Keyboard:
 
-	$0e21	Keyboard chip
+	VIA 6522 - $0e21
+	 b7 - Key pressed
+	 b6 - 
+	 b5 - 
+	 b4 - 
+	 b3 - 
+	 b2 - 
+	 b1 - 
+	 b0 - 
 
 LFD53:      bit L0E21
             bpl LFD53

@@ -1,1 +1,1 @@
-.include "testblock.inc" 
+.include "kcmunchkin.inc" 

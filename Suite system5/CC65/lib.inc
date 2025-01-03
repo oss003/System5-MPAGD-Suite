@@ -38,8 +38,11 @@
 	SpeakerBit	= $b002	; Speaker bit
 	CmdReg		= $b400	; Command register AtoMMC
 	DatReg		= $b401	; Data register AtoMMC 
-	Timer2_Low	= $b808	; Timer 2 low byte
-	Timer2_High	= $b809	; Timer 2 high byte
+	Timer1_Low  	= $0e24	; Timer 1 low byte
+	Timer1_High 	= $0e25	; Timer 1 high byte
+	Timer2_Low	= $0e28	; Timer 2 low byte
+	Timer2_High	= $0e29	; Timer 2 high byte
+	IFR		= $0e2d ; Interrupt Flag Register
 
 ; System calls
 
@@ -78,6 +81,25 @@ keymask:
 ;----------------------------------------------------------------------
 
 init:
+
+; Set timer at 50 Hz
+;	lda #$e0		; T1 continuous
+;	sta $0e2b
+;	lda #$7f		; No int
+;	sta $0e2e
+;	lda #0
+;	sta $0e2d		; Clear interrupt flags
+;	lda #<50000
+;	sta Timer1_Low
+;	lda #>50000
+;	sta Timer1_High
+
+; Disable cursor
+	lda #$0a
+	sta $0800
+	lda #$20
+	sta $801
+
 	jsr cls
 	rts
 
@@ -124,6 +146,54 @@ colloop:
 	dex
 	bne colloop
 	rts
+
+;-------------------------------------------------------------
+; Screen synchronisation.
+;
+;  - read joystick/keyboard
+;  - handle sound
+;  - sync framerate with clock
+;  - handle shrapnel every even frame
+;-------------------------------------------------------------
+
+vsync:
+	pha
+	tya
+	pha
+	txa
+	pha
+	jsr joykey		; read joystick/keyboard.
+vsync1:
+;	bit IFR			; Check Interrupt Flag Register
+;	beq vsync1
+;	lda Timer1_Low		; Clear Timer interrupt
+
+	lda clock
+	and #1
+	bne:+
+	jsr proshr		; handle shrapnel every even frame
+:
+	lda sndtyp
+	beq sndskip
+sndloop:
+	lda SpeakerBit		; handle sound
+	ldy sndtyp
+sndwait:
+	dey
+	bne sndwait
+	eor #4
+	sta SpeakerBit
+	dec sndtyp
+	bne sndloop
+sndskip: 
+	pla
+	tax
+	pla
+	tay
+	pla
+	rts
+
+sndtyp:	.byte 0
 
 ;======================================================================
 ; Joystick routines
@@ -173,3 +243,4 @@ relkey:
 	bit PORT_A
 	bpl relkey
 	rts
+

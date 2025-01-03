@@ -163,10 +163,10 @@ numob:		.byte NUMOBJ	; number of objects in game.
 ; Variables start here.
 ; Pixel versions of wintop, winlft, winhgt, winwid.
 
-wntopx:		.byte (8 * WINDOWTOP)
-wnlftx:		.byte (8 * WINDOWLFT)
-wnbotx:		.byte ((WINDOWTOP * 2) + (WINDOWHGT * 3) - 12)
-wnrgtx:		.byte ((WINDOWLFT * 2) + (WINDOWWID * 3) - 12)-2
+wntopx:		.byte (3 * WINDOWTOP)
+wnlftx:		.byte (2 * WINDOWLFT)
+wnbotx:		.byte ((WINDOWTOP * 3) + (WINDOWHGT * 3) - 9)
+wnrgtx:		.byte ((WINDOWLFT * 2) + (WINDOWWID * 2) - 8)-2
 
 ; Assorted game routines which can go in contended memory.
 
@@ -699,58 +699,6 @@ iniob0:
 
 	rts
 .endif
-
-;-------------------------------------------------------------
-; Screen synchronisation.
-;
-;  - read joystick/keyboard
-;  - handle sound
-;  - sync framerate with clock
-;  - handle shrapnel every even frame
-;-------------------------------------------------------------
-
-vsync:
-	pha
-	tya
-	pha
-	txa
-	pha
-	jsr joykey		; read joystick/keyboard.
-vsync1:
-;	lda Timer2_High		; sync framerate with clock
-;	cmp #$ff
-;	bne vsync1
-;	lda #>50000
-;	sta Timer2_High
-;	lda #<50000
-;	sta Timer2_Low
-
-	lda clock
-	and #1
-	bne:+
-	jsr proshr		; handle shrapnel every even frame
-:
-	lda sndtyp
-	beq sndskip
-sndloop:
-	lda SpeakerBit		; handle sound
-	ldy sndtyp
-sndwait:
-	dey
-	bne sndwait
-	eor #4
-	sta SpeakerBit
-	dec sndtyp
-	bne sndloop
-sndskip: 
-	pla
-	tax
-	pla
-	tay
-	pla
-	rts
-
-sndtyp:	.byte 0
 
 ;-----------------------------------------------
 ; Redraw the screen.
@@ -4562,7 +4510,7 @@ dspr4:
 	lda (z80_ix),y 		; old frame.
 	ldy #7
 	cmp (z80_ix),y 		; compare against new value.
-	jmp dspr7 		; they differ, need to redraw.
+	bne dspr7 		; they differ, need to redraw.
 
 	ldy #1
 	lda (z80_ix),y 		; old image.
@@ -4740,6 +4688,7 @@ scadd:
 	adc SCADTB_lb,x
 	sta scraddr
 	lda SCADTB_hb,x
+	adc #0
 	sta scraddr+1
 	rts
 
@@ -4884,8 +4833,8 @@ dline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_b		; mask right
-	ora #$20		; Set bit 5
 	eor (scraddr),y		; merge with screenright
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenright
 
 	rts
@@ -4930,7 +4879,6 @@ ddline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
-	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenright
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata5

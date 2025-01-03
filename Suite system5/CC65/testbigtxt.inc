@@ -51,7 +51,7 @@
 	.out "- Adventure mode enabled" 
 .endif
 .if bflag
-	.out "- Big Sprites (16x24) enabled" 
+	.out "- Big Sprites (8x12) enabled" 
 .endif
 .if gflag
 	.out "- Colourmode enabled" 
@@ -163,10 +163,10 @@ numob:		.byte NUMOBJ	; number of objects in game.
 ; Variables start here.
 ; Pixel versions of wintop, winlft, winhgt, winwid.
 
-wntopx:		.byte (8 * WINDOWTOP)
-wnlftx:		.byte (8 * WINDOWLFT)
-wnbotx:		.byte ((WINDOWTOP * 8) + (WINDOWHGT * 8) - 16)
-wnrgtx:		.byte ((WINDOWLFT * 8) + (WINDOWWID * 8) - 16)-2
+wntopx:		.byte (3 * WINDOWTOP)
+wnlftx:		.byte (2 * WINDOWLFT)
+wnbotx:		.byte ((WINDOWTOP * 3) + (WINDOWHGT * 3) - 9)
+wnrgtx:		.byte ((WINDOWLFT * 2) + (WINDOWWID * 2) - 8)-2
 
 ; Assorted game routines which can go in contended memory.
 
@@ -699,58 +699,6 @@ iniob0:
 
 	rts
 .endif
-
-;-------------------------------------------------------------
-; Screen synchronisation.
-;
-;  - read joystick/keyboard
-;  - handle sound
-;  - sync framerate with clock
-;  - handle shrapnel every even frame
-;-------------------------------------------------------------
-
-vsync:
-	pha
-	tya
-	pha
-	txa
-	pha
-	jsr joykey		; read joystick/keyboard.
-vsync1:
-;	lda Timer2_High		; sync framerate with clock
-;	cmp #$ff
-;	bne vsync1
-;	lda #>50000
-;	sta Timer2_High
-;	lda #<50000
-;	sta Timer2_Low
-
-	lda clock
-	and #1
-	bne:+
-	jsr proshr		; handle shrapnel every even frame
-:
-	lda sndtyp
-	beq sndskip
-sndloop:
-	lda SpeakerBit		; handle sound
-	ldy sndtyp
-sndwait:
-	dey
-	bne sndwait
-	eor #4
-	sta SpeakerBit
-	dec sndtyp
-	bne sndloop
-sndskip: 
-	pla
-	tax
-	pla
-	tay
-	pla
-	rts
-
-sndtyp:	.byte 0
 
 ;-----------------------------------------------
 ; Redraw the screen.
@@ -1782,17 +1730,23 @@ setsat:
 	lda #>ScreenAddr
 	sta scraddr+1
 
+	ldx #0
 	ldy #0			; vertical lines on screen.
 setsa0:
 	lda scraddr
 	sta SCADTB_lb,y		; write low byte.
 	lda scraddr+1
-	cpy #ScrHeight		; vertical lines on screen.
+	cpy #ScrHeight*3		; vertical lines on screen.
 	bcc :+
 	ora #$F0		; plot sprites in rom if of screen
 :
 	sta SCADTB_hb,y		; write high byte.
+	inx
+	cpx #3
+	bne :+
 	jsr nline		; next line down.
+	ldx #0
+:
 	iny			; next position in table.
 	bne setsa0
 	
@@ -2910,7 +2864,12 @@ swpsb0:
 ;----------------------------------------------------
 
 gprad:
-	ldy dispy
+	lda dispy
+	sta tmp
+	asl a
+	clc
+	adc tmp
+	tay
 	lda SCADTB_lb,y
 	clc
 	adc dispx
@@ -4617,30 +4576,66 @@ gsprad:
 	lda (z80_ix),y 		; sprite image.
 	jsr gfrm 		; fetch start frame for this sprite.
 
+; z80_hl = sprite framenr
+
 	ldy #0
 	lda (z80_hl),y 		; frame in accumulator.
+
+; z80_ix+2 = current framenr
+
 	ldy #2
 	clc
 	adc (z80_ix),y 		; add frame number.
+
+; A = sprite framenr + current framenr
+; 
+; framestartaddress = 24 * A (Normal 4 x 32 = 128)
+; frameoffset =  + 6 * (x and 2)   (Normal steps of 32)
+; framedataptr = framestartaddress + frameoffset + sprgfx
+
 gspra0:
-	lsr a	  		; multiply by 128.
-	sta z80_d 		; store in d.
-	sta tmp1
-	lda #0
-	ror a
-	sta z80_e 		; got low byte.
-	sta tmp2
-.if bflag
-	lsr tmp1
-	ror tmp2
-	clc
-	lda tmp2
-	adc z80_e
+
+; framestartaddress = 24 * sprite image (Normal 4 x 32 = 128)
+	
 	sta z80_e
-	lda tmp1
-	adc z80_d
+	lda #0
 	sta z80_d
-.endif
+
+	asl z80_e		; a x 8
+	rol z80_d
+	asl z80_e
+	rol z80_d
+	asl z80_e
+	rol z80_d
+
+	lda z80_e		; save a x 8
+	sta tmp1
+	lda z80_d
+	sta tmp2
+
+	asl z80_e		; a x 16
+	rol z80_d
+
+	clc			; z80_de = ax8 + ax16 = ax24
+	lda z80_e
+	adc tmp1
+	sta z80_e
+	lda z80_d
+	adc tmp2
+	sta z80_d
+
+;.if bflag
+;	lsr tmp1
+;	ror tmp2
+;	clc
+;	lda tmp2
+;	adc z80_e
+;	sta z80_e
+;	lda tmp1
+;	adc z80_d
+;	sta z80_d
+;.endif
+
 	clc 			; address of play sprites.
 	lda z80_e
 	adc #<sprgfx
@@ -4649,27 +4644,25 @@ gspra0:
 	adc #>sprgfx
 	sta z80_d
 
-	lda dispx 		; y coordinate.
-	and #6 			; position within byte boundary.
-	tax	 		; low byte of table displacement.
+; frameoffset =  + 12 * (x and 1) (steps of 32)
 
-	asl a	  		; multiply by 32.
-	asl a  			; already a multiple
-	asl a  			; of 2, so just 4
-.if bflag
-	sta tmp1
-	asl a  			; shifts needed.
-	clc
-	adc tmp1
-.else
-	asl a  			; shifts needed.
-.endif
-	clc 			; add to sprite address.
-	adc z80_e
+	lda dispx 		; x coordinate.
+	and #1
+	beq no_shift
+	clc			; Point to odd frame
+	lda z80_e
+	adc #12
 	sta z80_e
 	bcc :+
 	inc z80_d
 :
+; Spritemask is z80_c = mask_left and z80_b = mask_right
+
+no_shift:
+	lda dispx
+	and #1
+	asl a
+	tax
 	lda spmask,x		 ; pointer to mask table.
 	sta z80_c 		; left mask.
 	lda spmask+1,x
@@ -4680,27 +4673,28 @@ gspra0:
 ; This routine returns a screen address for (dispx, dispy) in scraddr.
 ;------------------------------------------------------------------
 
+; Check for bottom of screen
+
 scadd:
 	ldx dispy
-	cpx #192
+	cpx #76
 	bcc :+
-	ldx #192
+	ldx #76
 :
+
 	lda dispx
-	lsr a
-	lsr a
 	lsr a
 	clc
 	adc SCADTB_lb,x
 	sta scraddr
 	lda SCADTB_hb,x
+	adc #0
 	sta scraddr+1
 	rts
 
-spmask:	.byte $ff,$00
-	.byte $3f,$c0
-	.byte $0f,$f0
-	.byte $03,$fc
+spmask:
+	.byte $ff,$00
+	.byte $6a,$35
 
 tmp1:	.byte 0
 tmp2:	.byte 0
@@ -4729,36 +4723,11 @@ sspri2:
 	ldx #0			; vertical lines.
 sspri0:
 	jsr dline		; draw a line.
-	cpx #4			; detect end of line 0
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #8			; detect end of line 1
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #12			; Detect end of line 2
 
 .if bflag
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
 	cpx #16			; Detect end of line 3
+.else
+	cpx #12			; Detect end of line 2
 .endif
 
 	bne sspri0		; no, repeat
@@ -4779,7 +4748,6 @@ ssprib:
 ;-----------------------------------------------------------------
 
 sspric:
-rts
 	jsr gsprad 		; get old sprite address.
 				; z80_de = old sprite address
 	lda z80_e
@@ -4813,38 +4781,14 @@ lloop:
 	jsr dline 		; draw a line.
 	dex
 	dex
+	dex
+	dex
 	jsr ddline 		; delete a line.
 
-	cpx #4			; detect end of line 0
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #8			; detect end of line 1
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
-	cpx #12			; Detect end of line 2
-
 .if bflag
-	bne :+			; skip if not
-	lda scraddr		; Point to 1 line down
-	clc
-	adc #ScrWidth
-	sta scraddr
-	bcc :+
-	inc scraddr+1		; jump to next blockline
-:
 	cpx #16			; Detect end of line 3
+.else
+	cpx #12			; Detect end of line 2
 .endif
 	bne lloop		; no, repeat
 	ldx xtmp
@@ -4861,34 +4805,37 @@ dline1:
 	lda z80_a
 	and z80_c		; mask left
 	eor (scraddr),y		; merge with screenleft
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenleft
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2b:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 dline2c:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 
 	lda z80_a		; fetch spriteright byte
 	and z80_b		; mask right
+	ora #$20		; Set bit 5
 	eor (scraddr),y		; merge with screenright
 	sta (scraddr),y		; write screenright
-sline3:
-	inx			; next spritebyte
 
 	rts
 
@@ -4902,48 +4849,48 @@ ddline1:
 
 	lda z80_a
 	and z80_cp		; mask left
+	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2a:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata1
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2b:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata2
 	inx			; next spritebyte
 	iny			; point to screenmiddle
 ddline2c:
 	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenmiddle
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata3
 	inx			; next spritebyte
 	iny			; point to screenright
 
-ddline2d:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (z80_hlp),y		; merge with screenmiddle
-	sta (z80_hlp),y		; write spritedata4
-	iny			; point to screenright
-	inx			; next spritebyte
-
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
+	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenright
+	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata5
 
 	rts
 
 sprline:
-	.byte $00,$01,$02,$03,$04
-	.byte $28,$29,$2a,$2b,$2c
-	.byte $50,$51,$52,$53,$54
-	.byte $78,$79,$7a,$7b,$7c
+	.byte $00,$01,$02,$03
+	.byte $28,$29,$2a,$2b
+	.byte $50,$51,$52,$53
+	.byte $78,$79,$7a,$7b
 
 ;----------------------------------------------------------------------
 ; Line drawn, now work out next target address.
@@ -5114,7 +5061,7 @@ colc16:
 	clc
 	adc #1
 colc1a:
-	cmp #16 				; within x range?
+	cmp #SPR_WID				; within x range?
 	bcs sktyp1				; no - they"ve missed.
 	sta z80_c				; store difference.
 
@@ -5127,11 +5074,11 @@ colc1a:
 	clc
 	adc #1
 colc1b:
-	cmp #16					; within y range?
+	cmp #SPR_HGT					; within y range?
 	bcs sktyp1 				; no - they've missed.
 	clc					; add x difference.
 	adc z80_c
-	cmp #26					; only 5 corner pixels touching?
+	cmp #12					; only 5 corner pixels touching?
 	bcs :+
 	sec
 	rts 					; carry set if there's a collision.
@@ -6259,10 +6206,8 @@ chgfx:
 bprop:
         .byte 0
 sprgfx:
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 32,32,32,32,32,32,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,32,32,32,32,32,32
 frmlst:
         .byte 0,1,1,0
 scdat:
@@ -6374,4 +6319,4 @@ font:
         .byte 124,198,187,227,227,187,198,124
 jtab:
         .byte 99
-keys:   .byte 53,21,147,34,144,4,20,33,17,1,146
+keys:   .byte 80,79,65,81,32,78,77,49,50,51,52

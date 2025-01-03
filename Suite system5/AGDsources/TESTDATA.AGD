@@ -212,20 +212,20 @@ EVENT MAINLOOP1
  REPEAT 10
   READ A
   DISPLAY A
-  IF A <> 9
-    PRINT ","
-  ENDIF
+;  IF A <> 9
+;    PRINT ","
+;  ENDIF
  ENDREPEAT
 
  RESTORE
- LET LINE = 4
+ LET LINE = 6
  LET COLUMN = 1
  REPEAT 10
   READ A
   DISPLAY A
-  IF A <> 9
-    PRINT ","
-  ENDIF
+;  IF A <> 9
+;    PRINT ","
+;  ENDIF
  ENDREPEAT
 
  DATA 0 1 2 3 4 5 6 7 8 9
