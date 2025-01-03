@@ -1967,10 +1967,6 @@ rbloc0:
 ; New level
 ;----------------------------------------------------------
 
-;.repeat 270
-;  .byte 0
-;.endrep
-
 newlev:
 	lda scno 			; current screen.
 	clc
@@ -1988,10 +1984,6 @@ evwon:
 ; Player dead.
 ;----------------------------------------------------------
 
-;.repeat 258
-;  .byte 0
-;.endrep
-
 pdead:
 	lda #0				; zeroise accumulator.
 	sta deadf			; reset dead flag.
@@ -2008,10 +2000,6 @@ evfail:
 ;----------------------------------------------------------
 ; Tidy things up
 ;----------------------------------------------------------
-
-;.repeat 291
-;  .byte 0
-;.endrep
 
 tidyup:
 	ldy #0				; digits to check.
@@ -2483,10 +2471,6 @@ skobj2:
   offset = 20
 .endif
 
-;.repeat 343
-;  .byte 0
-;.endrep
-
 spawn:
 	lda #<sprtab		; sprite table.
 	sta z80_l
@@ -2630,10 +2614,6 @@ dhisc:
 ;------------------------------------------------------
 ; Displays the current score.
 ;------------------------------------------------------
-
-;.repeat 322
-;  .byte 0
-;.endrep
 
 dscor:
 	lda #<score		; score text.
@@ -2883,31 +2863,23 @@ gprad:
 ; Get property buffer address of char at (dispx, dispy) in hl.
 ; 
 ; Output:
-;  bufaddr = MAP + dispy*32 + dispx
+;  bufaddr = MAP + dispy*40 + dispx
 ;--------------------------------------------------------------
 
 pradd:
 	lda dispy 		; y coordinate.
-	sta bufaddr
-	lda #0
-	sta bufaddr+1
-	asl bufaddr  		; multiply char by 32
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	clc			; add address of MAP graphics.
-	lda bufaddr
+	asl a
+	clc
+	adc dispy
+	tax
+
+	clc
+	lda SCADTB_lb,x
 	adc dispx
-	adc #<MAP
 	sta bufaddr
-	lda bufaddr+1
-	adc #>MAP
+
+	lda SCADTB_hb,x
+	adc #(>MAP->ScreenAddr)
 	sta bufaddr+1
 	rts
 
@@ -2943,10 +2915,6 @@ scrtab:		.byte $e0,$c0,$a0,$80,$60,$40,$20,$00
 ;  A	= tile number
 ;----------------------------------------------
 
-;.repeat 294
-;  .byte 0
-;.endrep
-
 pbpattr:			; entry PUTBLOCK command
 	ldy charx
 	sty dispx
@@ -2976,10 +2944,6 @@ pattr2:
 	lda z80_b 		; restore cell.
 	jmp panp
 ; Print attributes, no properties.
-
-;.repeat 263
-; .byte 0
-;.endrep
 
 colpatt:	.byte 0
 
@@ -3145,10 +3109,6 @@ spr:	.byte 0,0,0
 ;-----------------------------------------------------------
 ; Get room address.
 ;-----------------------------------------------------------
-
-;.repeat 273
-;  .byte 0
-;.endrep
 
 groom:
 	ldx scno 		; screen number.
@@ -3344,7 +3304,7 @@ cangu:
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
 	sec
-	sbc #2
+	sbc #1
 	sta dispy		; coords in dispx,dispy.
 	jsr tstbl 		; get map address.
 	jsr lrchk 		; standard left/right check.
@@ -3359,8 +3319,24 @@ cangu:
 	beq :+
 	rts			; impassable.
 :
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr lrchk 		; do the check.
+	beq :+
+	rts			; impassable.
+:
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr lrchk 		; do the check.
+	beq :+
+	rts			; impassable.
+:
 	lda dispx		; x coordinate.
-	and #7			; position straddling block cells.
+	and #1			; position straddling block cells.
 	bne :+
 	rts			; no more checks needed.
 :
@@ -3380,10 +3356,6 @@ cangu:
 ; Output:
 ;  A  = 0 is ok, A <>0 is not ok
 ;---------------------------------------------------------
-
-;.repeat 264
-;  .byte 0
-;.endrep
 
 cangd:
 	ldy #9
@@ -3408,8 +3380,24 @@ numsp3:
 	beq :+
 	rts			; impassable.
 :
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr plchk		; block, platform check.
+	beq :+
+	rts			; impassable.
+:
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr plchk		; block, platform check.
+	beq :+
+	rts			; impassable.
+:
 	lda dispx		; x coordinate.
-	and #7			; position straddling block cells.
+	and #1			; position straddling block cells.
 	bne :+
 	rts			; no more checks needed.
 :
@@ -3437,7 +3425,7 @@ cangl:
 	ldy #9
 	lda (z80_ix),y 		; x coordinate.
 	sec
-	sbc #2			; look left 2 pixels.
+	sbc #1			; look left 2 pixels.
 	sta dispx		; coords in dispx,dispy.
 	jmp cangh		; test if we can go there.
 
@@ -3451,10 +3439,6 @@ cangl:
 ;  A  = 0 is ok, A <>0 is not ok
 ;---------------------------------------------------------
 
-.repeat 272
-  .byte 0
-.endrep
-
 cangr:
 	ldy #8
 	lda (z80_ix),y		; y coordinate.
@@ -3462,14 +3446,14 @@ cangr:
 	ldy #9
 	lda (z80_ix),y		; x coordinate.
 	clc
-	adc #16			; look right 16 pixels.
+	adc #SPR_WID		; look right 8 pixels.
 	sta dispx		; coords in dispx,dispy.
 cangh:
 cangh2:
-	lda #(SPR_HGT/8+1)	; default rows to write.
+	lda #(SPR_HGT/4+1)	; default rows to write.
 	sta z80_b
 	lda dispy		; y position.
-	and #7			; does x straddle cells?
+	and #3			; does x straddle cells?
 	bne cangh0		; yes, loop counter is good.
 	dec z80_b		; one less row to write.
 cangh0:
@@ -3482,7 +3466,7 @@ cangh1:
 	pha
 	clc
 	lda bufaddr
-	adc #32			; look down.
+	adc #ScrWidth		; look down.
 	sta bufaddr
 	bcc :+
 	inc bufaddr+1
@@ -3531,7 +3515,7 @@ lrchkx:
 ; Check platform or solid item is not in way.
 ;
 ; Input:
-;  bufaddr = MAP + x/8 + y/8*32
+;  bufaddr = MAP + x/2 + y/3*40
 ;
 ; Output:
 ;  A  = 0 is ok, A <>0 is not ok
@@ -3556,8 +3540,8 @@ plchk0:
 	lda #0			; report as ok
 	rts
 plchkx:
-	lda dispy		; x coordinate.
-	and #7			; position straddling blocks.
+	lda dispy		; y coordinate.
+	and #3			; position straddling blocks.
 	beq lrchkx		; on platform, deny movement.
 	jmp plchk0
 
@@ -3681,7 +3665,7 @@ tded:
 	sta dispx		; coords in dispx,dispy.
 	jsr tstbl		; get map address.
 	pha
-	lda #31			; default distance to next line down.
+	lda #ScrWidth-1		; default distance to next line down.
 	sta z80_e
 	pla
 	cmp z80_b		; is this the required block?
@@ -3700,7 +3684,7 @@ tded:
 :
 	lda dispx		; horizontal position.
 	sta z80_c 		; store column in c register.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	jmp tded0		; no.
 :
@@ -3740,7 +3724,7 @@ tded0:
 	rts			; yes.
 :
 	lda z80_c		; horizontal position.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	jmp tded1 		; no.
 :
@@ -3756,7 +3740,7 @@ tded0:
 :
 tded1:
 	lda dispy		; vertical position.
-	and #7 			; is it straddling cells?
+	and #3 			; is it straddling cells?
 	bne :+
 	rts			; no, job done.
 :
@@ -3784,7 +3768,7 @@ tded1:
 	rts			; yes.
 :
 	lda z80_c		; horizontal position.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	rts			; no.
 :
@@ -3805,44 +3789,24 @@ tded1:
 
 tstbl:
 	lda dispy 		; fetch y coord.
-	lsr a			; bufaddr = y/8
-	lsr a
-	lsr a
-	sta chary
-
-	sta bufaddr
-	lda #0
-	sta bufaddr+1
-
-	asl bufaddr  		; bufaddr = y/8 * 32
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
+	tax
 
 	lda dispx		; x/8
 	lsr a
-	lsr a
-	lsr a
 	sta charx
 
-	clc			; bufaddr = MAP + x/8 + y/8*32
-	adc bufaddr
-	adc #<MAP
+	clc
+	lda SCADTB_lb,x
+	adc charx
 	sta bufaddr
-	lda bufaddr+1
-	adc #>MAP
-	sta bufaddr+1
 
+	lda SCADTB_hb,x
+	adc #(>MAP->ScreenAddr)
+	sta bufaddr+1
+	
 	ldy #0
 	lda (bufaddr),y 	; fetch byte there.
 	rts
-
 
 ;-------------------------------------------------------------------
 ; Jump - if we can.
@@ -4849,7 +4813,6 @@ ddline1:
 
 	lda z80_a
 	and z80_cp		; mask left
-	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0
@@ -4904,17 +4867,6 @@ nline:
 	inc scraddr+1 		; new high byte of address.
 :
 	rts
-
-;-------------------------------------------------------------
-; Line drawn, now work out next target address.
-;
-; Input:
-;  BP  = right mask
-;  CP  = left mask
-;  DEP = spriteaddress
-;  z80_hlp = screen address
-;-------------------------------------------------------------
-
 
 ;-----------------------------------------------------------
 ; Animates a sprite.
@@ -6144,157 +6096,97 @@ a00055: lda #0
         lda joyval	; KEY
         and #8
         beq :+
-        jmp a00151
+        jmp a00167
 :
         lda #1
         sta varm
+        jsr cangu	; CANGOUP
+        beq :+
+        jmp a00167
+:
         lda #9
         ldy #8
         cmp (z80_ix),y
         bcc *+5
-        jmp a00151
+        jmp a00167
         ldy #8 		; SPRITEUP
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00151: lda joyval	; KEY
+a00167: lda joyval	; KEY
         and #4
         beq :+
-        jmp a00230
+        jmp a00263
 :
         lda #1
         sta varm
+        jsr cangd	; CANGODOWN
+        beq :+
+        jmp a00263
+:
         lda #57
         ldy #8
         cmp (z80_ix),y
         bcc *+4
         bne *+5
-        jmp a00230
+        jmp a00263
         ldy #8 		; SPRITEDOWN
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00230: lda joyval	; KEY
+a00263: lda joyval	; KEY
         and #2
         beq :+
-        jmp a00305
+        jmp a00354
 :
         lda #1
         sta varm
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp a00354
+:
         lda #4
         ldy #9
         cmp (z80_ix),y
         bcc *+5
-        jmp a00305
+        jmp a00354
         ldy #9 		; SPRITELEFT
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00305: lda joyval	; KEY
+a00354: lda joyval	; KEY
         and #1
         beq :+
-        jmp a00384
+        jmp a00450
 :
         lda #1
         sta varm
+        jsr cangr	; CANGORIGHT
+        beq :+
+        jmp a00450
+:
         lda #70
         ldy #9
         cmp (z80_ix),y
         bcc *+4
         bne *+5
-        jmp a00384
+        jmp a00450
         ldy #9 		; SPRITERIGHT
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00384: lda #0
+a00450: lda #0
         cmp varm
         bcc *+5
-        jmp a00412
+        jmp a00478
         lda #1		; ANIMATE
         jsr animsp
-a00412: ; SPRITEINK command
-        lda #23		; AT
-        sta chary
-        lda #22
-        sta charx
-        lda #1 	; COLLISION
-        sta z80_b
-        jsr sktyp
-        bcs :+
-        jmp a00526
-:
-        lda skptr	; OTHER
-        sta z80_x
-        lda skptr+1
-        sta z80_i
-        ldy #5
-        lda (z80_ix),y	; DISPLAY
-        jsr disply
-        lda ogptr	; ENDSPRITE
-        sta z80_x
-        lda ogptr+1
-        sta z80_i
-        jmp a00625
-a00526: lda #2 	; COLLISION
-        sta z80_b
-        jsr sktyp
-        bcs :+
-        jmp a00615
-:
-        lda skptr	; OTHER
-        sta z80_x
-        lda skptr+1
-        sta z80_i
-        ldy #5
-        lda (z80_ix),y	; DISPLAY
-        jsr disply
-        lda ogptr	; ENDSPRITE
-        sta z80_x
-        lda ogptr+1
-        sta z80_i
-        jmp a00625
-a00615: lda #6		; PRINT
-        jsr dmsg
-a00625: ldy #7 	; KEY
-        lda keys,y
-        jsr ktest
-        bcc :+
-        jmp a00665
-:
-        lda #255	; REMOVE
-        ldy #5
-        sta (z80_ix),y
-a00665: ldy #8 	; KEY
-        lda keys,y
-        jsr ktest
-        bcc :+
-        jmp a00781
-:
-        lda #1	; SPAWN
-        sta z80_c
-        lda #1
-        sta z80_b
-        jsr spawn
-        lda spptr	; SPAWNED
-        sta z80_x
-        lda spptr+1
-        sta z80_i
-        lda #44
-        ldy #9
-        sta (z80_ix),y
-        lda #44
-        ldy #8
-        sta (z80_ix),y
-        lda ogptr	; ENDSPRITE
-        sta z80_x
-        lda ogptr+1
-        sta z80_i
-a00781: rts
+a00478: ; SPRITEINK command
+        rts
 evnt01:
         ldy #11
         lda (z80_ix),y
@@ -6389,7 +6281,7 @@ evnt17:
         lda #13
         sta charx
         ; COLOUR command
-        lda #7		; PRINT
+        lda #6		; PRINT
         jsr dmsg
         lda #2
         sta z80_c
@@ -6400,7 +6292,7 @@ evnt17:
         lda #13
         sta charx
         ; COLOUR command
-        lda #8		; PRINT
+        lda #7		; PRINT
         jsr dmsg
         jsr prskey	; WAITKEY
         rts
@@ -6412,7 +6304,7 @@ evnt19:
         sta chary
         lda #8
         sta charx
-        lda #9		; PRINT
+        lda #8		; PRINT
         jsr dmsg
         rts
 evnt20:
@@ -6425,12 +6317,11 @@ msgdat:
         .byte " GAM",197
         .byte " OVE",210
         .byte " NEW HIGH SCOR",197
-        .byte "  ",160
         .byte " GAME",160
         .byte " OVER",160
         .byte " NEW HIGH SCORE",160
 nummsg:
-        .byte 10
+        .byte 9
 chgfx:
         .byte 0,1
         .byte 127,1

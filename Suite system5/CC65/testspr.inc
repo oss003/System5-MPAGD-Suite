@@ -4849,7 +4849,6 @@ ddline1:
 
 	lda z80_a
 	and z80_cp		; mask left
-	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0

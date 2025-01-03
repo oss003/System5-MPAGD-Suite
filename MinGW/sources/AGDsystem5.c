@@ -1,15 +1,7 @@
-/* Atomic AGD SCript Compiler                                      */
+/* Acorn System 5 AGD SCript Compiler                              */
 /*                                                                 */
 /*   ZX Spectrum/CPC version written by Jonathan Cauldwell         */
-/*   Atom version written by Kees van Oss       2018-2022          */
-/*                                                                 */
-/*   v0.7.10-  ; Initial version                                   */
-/*   v0.7.10a  ; clwflag, CLW code                                 */	
-/*   v0.7.10b  ; bigflag, Bigtext code                             */	
-/*   v0.7.10c  ; crflag, Crumbling blocks                          */
-/*   v0.7.10d  ; xflag, Metablocks (16x16)                         */
-/*   v0.7.10e  ; rflag, RAM Pre-Shifted Tables                     */
-/*   v0.7.10f  ; TICKER accepts variables                          */
+/*   System 5 version written by Kees van Oss 2024                 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +46,7 @@ enum
 #define NO_ARGUMENT			255
 #define SPRITE_PARAMETER		0
 #define NUMERIC				1
+
 /* Game engine labels. */
 
 #define PAM1ST				5							/* ix+5 is first sprite parameter. */
@@ -953,7 +946,7 @@ int main( int argc, const char* argv[] )
 
 	puts( "AGD Compiler for ZX Spectrum Version 0.7.10-" );
 	puts( "(C) Jonathan Cauldwell February 2018" );
-	puts( "Atom version by Kees van Oss March 2018 \n" );
+	puts( "Acorn System 5 version by Kees van Oss 2024\n" );
 
 	short int i;
 	char d;
@@ -1608,6 +1601,28 @@ void CreateBlocks( void )
 	}
 }
 
+// Sprites are 4x3 chars
+// 	00 01 02 03
+// 	04 05 06 07
+// 	08 09 10 11
+//
+// Chars are 2x3 pixels
+//	b0 b1
+//	b2 b3
+//	b4 b6
+//
+// For semigraphics, b5 = 1 and b7 is not used.
+//
+// For horizontal shift, 1 extra sprite image is needed.
+// For vertical shift, 2x2 extra shifts are needed
+// So in total 6 images are needed (2 sets of 3)
+//
+// ver/hor -> 	x,y	x,y
+//  |		-------------
+//  V 		0,0	1,0
+//  		0,1	1,1
+//		0,2	1,2
+
 void CreateSprites( void )
 {
 	short int dByte0;
@@ -1653,7 +1668,6 @@ void CreateSprites( void )
 		nShiftsMax = 2;//Nr of shifts
 	}
 
-
 	/* Set up source address. */
 	cSrc = cBufPos;
 
@@ -1670,6 +1684,7 @@ void CreateSprites( void )
 		cFrames[ nCounter ] = *cSrc++;						/* store frames in array. */
 		cBufPos = cSrc;
 
+printf("cFrames=%d, nDataMax=%d, nShifts=%d\n",cFrames[nCounter],nDataMax,nShiftsMax);
 		for ( nFrame = 0; nFrame < cFrames[ nCounter ]; nFrame++ )
 		{
 			for ( nShifts = 0; nShifts < nShiftsMax; nShifts++ )
@@ -1687,7 +1702,7 @@ void CreateSprites( void )
 
 					for( nLoop = 0; nLoop < nShifts; nLoop++ )		/* pre-shift the sprite */
 					{
-						// Horizontal shit 1 pixel
+						// Horizontal shift 1 pixel
 
 						lNibble0 = (cByte[0] & 0x15) << 1;
 						if (lNibble0 > 31) lNibble0 += 32;
@@ -1695,19 +1710,19 @@ void CreateSprites( void )
 						if (rNibble0 > 31) rNibble0 -= 16;
 
 						lNibble1 = (cByte[1] & 0x15) << 1;
-						if (lNibble1 > 31) lNibble1 = lNibble1 + 32;
+						if (lNibble1 > 31) lNibble1 += 32;
 						rNibble1 = (cByte[1] & 0x4a) >> 1;
-						if (rNibble1 > 31) rNibble1 = rNibble1 - 16;
+						if (rNibble1 > 31) rNibble1 -= 16;
 
 						lNibble2 = (cByte[2] & 0x15) << 1;
-						if (lNibble2 > 31) lNibble2 = lNibble2 + 32;
+						if (lNibble2 > 31) lNibble2 += 32;
 						rNibble2 = (cByte[2] & 0x4a) >> 1;
-						if (rNibble2 > 31) rNibble2 = rNibble2 - 16;
+						if (rNibble2 > 31) rNibble2 -= 16;
 
 						lNibble3 = (cByte[3] & 0x15) << 1;
-						if (lNibble3 > 31) lNibble3 = lNibble3 + 32;
+						if (lNibble3 > 31) lNibble3 += 32;
 						rNibble3 = (cByte[3] & 0x4a) >> 1;
-						if (rNibble3 > 31) rNibble3 = rNibble3 - 16;
+						if (rNibble3 > 31) rNibble3 -= 16;
 
 						cByte[0] = (rNibble3 + lNibble0);
 						cByte[1] = (rNibble0 + lNibble1);
@@ -1715,16 +1730,17 @@ void CreateSprites( void )
 						cByte[3] = (rNibble2 + lNibble3);
 					}
 
-					WriteNumber( cByte[0] | 0x20);		/* write byte of data */
-					WriteText( "," );				/* put a comma */
-					WriteNumber( cByte[1] | 0x20);		/* write byte of data */
-					WriteText( "," );				/* put a comma */
-					WriteNumber( cByte[2] | 0x20);		/* write byte of data */
-					WriteText( "," );				/* put a comma */
-					WriteNumber( cByte[3] | 0x20);		/* write byte of data */
+					WriteNumber( cByte[0] | 0x20);	/* write byte of data */
+					WriteText( "," );		/* put a comma */
+					WriteNumber( cByte[1] | 0x20);	/* write byte of data */
+					WriteText( "," );		/* put a comma */
+					WriteNumber( cByte[2] | 0x20);	/* write byte of data */
+					WriteText( "," );		/* put a comma */
+					WriteNumber( cByte[3] | 0x20);	/* write byte of data */
+
 					if ( nData < nDataMax )
 					{
-						WriteText( "," );			/* more to come; put a comma */
+						WriteText( "," );	/* more to come; put a comma */
 					}
 				}
 			}
@@ -2872,7 +2888,7 @@ void CR_SpriteUp( void )
 	WriteInstruction( "ldy #8 		; SPRITEUP" );
 	WriteInstruction( "lda (z80_ix),y" );
 	WriteInstruction( "sec" );
-	WriteInstruction( "sbc #2" );
+	WriteInstruction( "sbc #1" );
 	WriteInstruction( "sta (z80_ix),y" );
 }
 
@@ -2881,7 +2897,7 @@ void CR_SpriteDown( void )
 	WriteInstruction( "ldy #8 		; SPRITEDOWN" );
 	WriteInstruction( "lda (z80_ix),y" );
 	WriteInstruction( "clc" );
-	WriteInstruction( "adc #2" );
+	WriteInstruction( "adc #1" );
 	WriteInstruction( "sta (z80_ix),y" );
 }
 
@@ -2890,7 +2906,7 @@ void CR_SpriteLeft( void )
 	WriteInstruction( "ldy #9 		; SPRITELEFT" );
 	WriteInstruction( "lda (z80_ix),y" );
 	WriteInstruction( "sec" );
-	WriteInstruction( "sbc #2" );
+	WriteInstruction( "sbc #1" );
 	WriteInstruction( "sta (z80_ix),y" );
 }
 
@@ -2899,7 +2915,7 @@ void CR_SpriteRight( void )
 	WriteInstruction( "ldy #9 		; SPRITERIGHT" );
 	WriteInstruction( "lda (z80_ix),y" );
 	WriteInstruction( "clc" );
-	WriteInstruction( "adc #2" );
+	WriteInstruction( "adc #1" );
 	WriteInstruction( "sta (z80_ix),y" );
 }
 
@@ -5017,12 +5033,12 @@ void CR_DefineWindow( void )
 		Error( "Window already defined" );
 	}
 
-	if ( nWinTop + nWinHeight > 24 )
+	if ( nWinTop + nWinHeight > 25 )
 	{
 		Error( "Window extends beyond bottom of screen" );
 	}
 
-	if ( nWinLeft + nWinWidth > 32 )
+	if ( nWinLeft + nWinWidth > 40 )
 	{
 		Error( "Window extends beyond right edge of screen" );
 	}
