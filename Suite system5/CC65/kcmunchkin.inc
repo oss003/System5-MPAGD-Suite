@@ -123,6 +123,7 @@
 
 .segment "CODE"
 
+
 ; Clear zp variables
 
 	lda #0
@@ -149,7 +150,7 @@ nmeptr:		.word nmedat	; enemy start positions.
 objptr:		.word objdta	; object graphics
 
 ;TxtFilter:	.byte $ff
-txtcol:		.byte green,yellow,blue,red
+;txtcol:		.byte green,yellow,blue,red
 
 ; Don't change the order of these four.  
 ; Menu routine relies on winlft following wintop.
@@ -347,6 +348,10 @@ mod0:
 	sta dispx		; set left display position.
 	lda bwid		; box width.
 	sta z80_b		; store width.
+
+	lda fcolour		; Set textcolour
+	jsr pchar
+	jsr nexpos
 dbox0:
 	ldy #0
 	lda (z80_hl),y		; get character.
@@ -375,6 +380,7 @@ dbox0:
 	lda z80_a
 	cmp #128		; end of message?
 	bmi :+
+	jsr dscor2
 	jmp dbox7		; yes, job done.
 :
 	lda z80_b		; chars remaining.
@@ -523,23 +529,29 @@ dbar:
 	sta dispx		; set display coordinate.
 	jsr gprad		; get printing address.
 
-	lda bwid		; box width.
-	sta z80_c		; loop counter in c.
-	lda z80_h		
-	sta z80_d		; store screen address high byte.
-dbar1:
-	ldx #7			; pixel height in b.
-dbar0:
-	ldy scrtab,x
-	lda (scraddr),y		; get screen byte.
-	eor #255		; reverse all bits.
-	sta (scraddr),y		; write back to screen.
-	dex			; next line down.
-	bpl dbar0		; draw rest of character.
+;	lda bwid		; box width.
+;	sta z80_c		; loop counter in c.
+;	lda z80_h		
+;	sta z80_d		; store screen address high byte.
+;dbar1:
+;	ldx #7			; pixel height in b.
+;dbar0:
+;	ldy scrtab,x
+;	lda (scraddr),y		; get screen byte.
+;	eor #255		; reverse all bits.
+;	sta (scraddr),y		; write back to screen.
+;	dex			; next line down.
+;	bpl dbar0		; draw rest of character.
 
-	inc scraddr		; one char right.
-	dec z80_c		; decrement character counter.
-	bne dbar1		; repeat for whole line.
+;	inc scraddr		; one char right.
+;	dec z80_c		; decrement character counter.
+;	bne dbar1		; repeat for whole line.
+
+	ldy #0
+	lda (scraddr),y
+	eor #7
+	sta (scraddr),y
+
 	rts
 
 ;------------------------------------------------------
@@ -606,11 +618,6 @@ fobj:
 	rts
 :
 	jmp fobj		; yes, it's on the list.
-
-;bwid:	.byte 0              ; box/menu width.
-;blen:	.byte 0              ; box/menu height.
-;btop:	.byte 0              ; box coordinates.
-;blft:	.byte 0
 .endif
 
 ;----------------------------------------------------
@@ -626,17 +633,9 @@ fobj:
 delay:
 	sta xtmp
 del_loop:
-	jsr SCRSYNC		; wait for flyback
-
-	ldy #208		; wait 208 x 16 = 3328 usec
-delay1:
-	adc ($80,x)		;	 6 usec
-	adc ($80,x)		;	 6 usec
-	dey			;	 2 usec
-	bne delay1		;	 2 usec
-	nop			; 2 usec
-	nop			; 2 usec
-				; tot: 20000 usec
+	lda frames_passed	; Wait if not at 25Hz
+	cmp #2
+	bcc del_loop
 	dec xtmp
 	bne del_loop
 	rts
@@ -1749,10 +1748,16 @@ setsa0:
 :
 	iny			; next position in table.
 	bne setsa0
+
+; Set up vertical sprite ptr per line
+
+setvsptr:
+
 	
 ; Init hardware and graphics mode
 
 	jsr init 		; Init hardware
+
 
 ; Init joystick
 
@@ -3938,43 +3943,43 @@ joyke0:
 ;  A = high nibble=row and low nibble=column key in matrix
 ;---------------------------------------------------------------
 
-kget:
-	lda #ScrMode		; high-mono mode.
-	sta ScrSelAddr		; screen select port
-	stx xtmp
-kget4:
-	jsr READKEY		; read key until pressed
-	cpy #255
-	beq kget4
-	sta rcol		; save column
-	stx rrow		; determine row
-kget3:
-	jsr READKEY		; wait until key released
-	cpy #255
-	bne kget3
-
-	sec			; calculate matrix row
-	lda #10
-	sbc rrow
-	asl a
-	asl a
-	asl a
-	asl a
-	sta rrow
-
-	ldy #255		; find column mask
-kget1:
-	iny
-	lda keymask,y
-	cmp rcol
-	beq kget2
-	jmp kget1
-kget2:
-	tya			; determine column
-	clc
-	adc rrow
-	ldx xtmp
-	rts
+;kget:
+;	lda #ScrMode		; high-mono mode.
+;	sta ScrSelAddr		; screen select port
+;	stx xtmp
+;kget4:
+;	jsr READKEY		; read key until pressed
+;	cpy #255
+;	beq kget4
+;	sta rcol		; save column
+;	stx rrow		; determine row
+;kget3:
+;	jsr READKEY		; wait until key released
+;	cpy #255
+;	bne kget3
+;
+;	sec			; calculate matrix row
+;	lda #10
+;	sbc rrow
+;	asl a
+;	asl a
+;	asl a
+;	asl a
+;	sta rrow
+;
+;	ldy #255		; find column mask
+;kget1:
+;	iny
+;	lda keymask,y
+;	cmp rcol
+;	beq kget2
+;	jmp kget1
+;kget2:
+;	tya			; determine column
+;	clc
+;	adc rrow
+;	ldx xtmp
+;	rts
 
 ;---------------------------------------------------------------
 ; Display message.
@@ -4553,39 +4558,36 @@ gsprad:
 
 ; A = sprite framenr + current framenr
 ; 
-; framestartaddress = 24 * A (Normal 4 x 32 = 128)
-; frameoffset =  + 6 * (x and 2)   (Normal steps of 32)
-; framedataptr = framestartaddress + frameoffset + sprgfx
+; framestart = z80_d/e = 120 * A (Normal 4 x 32 = 128)
+; framestart = framestart + (x AND 1) * 60
+; framestart = framestart + (reftable(dispy) * 20)
 
 gspra0:
 
-; framestartaddress = 24 * sprite image (Normal 4 x 32 = 128)
+; Calculate framestart = 120 * sprite image
 	
-	sta z80_e
-	lda #0
 	sta z80_d
+	sta tmp
+	lda #0
+	sta z80_e
+	sta tmp+1
 
-	asl z80_e		; a x 8
-	rol z80_d
-	asl z80_e
-	rol z80_d
-	asl z80_e
-	rol z80_d
+	lsr z80_d	; a * 128
+	ror z80_e
 
-	lda z80_e		; save a x 8
-	sta tmp1
-	lda z80_d
-	sta tmp2
+	asl tmp		; a x 8
+	rol tmp+1
+	asl tmp
+	rol tmp+1
+	asl tmp
+	rol tmp+1
 
-	asl z80_e		; a x 16
-	rol z80_d
-
-	clc			; z80_de = ax8 + ax16 = ax24
+	sec		; a*128 - a*8
 	lda z80_e
-	adc tmp1
+	sbc tmp
 	sta z80_e
 	lda z80_d
-	adc tmp2
+	sbc tmp+1
 	sta z80_d
 
 ;.if bflag
@@ -4600,6 +4602,8 @@ gspra0:
 ;	sta z80_d
 ;.endif
 
+; Add spritedata address
+
 	clc 			; address of play sprites.
 	lda z80_e
 	adc #<sprgfx
@@ -4608,29 +4612,29 @@ gspra0:
 	adc #>sprgfx
 	sta z80_d
 
-; frameoffset =  + 12 * (x and 1) (steps of 32)
+; Check for x-shift
 
 	lda dispx 		; x coordinate.
 	and #1
-	beq no_shift
+	beq chk_y_shift
 	clc			; Point to odd frame
 	lda z80_e
-	adc #12
+	adc #60
 	sta z80_e
 	bcc :+
 	inc z80_d
 :
-; Spritemask is z80_c = mask_left and z80_b = mask_right
+; SCheck for y-shift
 
-no_shift:
-	lda dispx
-	and #1
-	asl a
-	tax
-	lda spmask,x		 ; pointer to mask table.
-	sta z80_c 		; left mask.
-	lda spmask+1,x
-	sta z80_b 		; right mask.
+chk_y_shift:
+	ldx dispy
+	lda V_SPR_PTR,x
+	clc
+	adc z80_e
+	sta z80_e
+	bcc :+
+	inc z80_d
+:
 
 ;------------------------------------------------------------------
 ; Drop into screen address routine.
@@ -4678,21 +4682,23 @@ sspri2:
 	sta dline2a+1
 	sta dline2b+1
 	sta dline2c+1
+	sta dline2d+1
 	lda z80_d
 	sta dline1+2
 	sta dline2a+2
 	sta dline2b+2
 	sta dline2c+2
+	sta dline2d+2
 	stx xtmp
 	ldx #0			; vertical lines.
 sspri0:
 	jsr dline		; draw a line.
 
-.if bflag
-	cpx #16			; Detect end of line 3
-.else
-	cpx #12			; Detect end of line 2
-.endif
+;.if bflag
+;	cpx #16			; Detect end of line 3
+;.else
+	cpx #20			; Detect end of line 2
+;.endif
 
 	bne sspri0		; no, repeat
 	ldx xtmp
@@ -4719,11 +4725,13 @@ sspric:
 	sta ddline2a+1
 	sta ddline2b+1
 	sta ddline2c+1
+	sta ddline2d+1
 	lda z80_d
 	sta ddline1+2
 	sta ddline2a+2
 	sta ddline2b+2
 	sta ddline2c+2
+	sta ddline2d+2
 	jsr exx  		; store addresses.
 
 	jsr gspran 		; get new sprite addresses.
@@ -4733,11 +4741,13 @@ sspric:
 	sta dline2a+1
 	sta dline2b+1
 	sta dline2c+1
+	sta dline2d+1
 	lda z80_d
 	sta dline1+2
 	sta dline2a+2
 	sta dline2b+2
 	sta dline2c+2
+	sta dline2d+2
 
 	stx xtmp
 	ldx #0			; vertical lines.
@@ -4747,13 +4757,14 @@ lloop:
 	dex
 	dex
 	dex
+	dex
 	jsr ddline 		; delete a line.
 
-.if bflag
-	cpx #16			; Detect end of line 3
-.else
-	cpx #12			; Detect end of line 2
-.endif
+;.if bflag
+;	cpx #16			; Detect end of line 3
+;.else
+	cpx #20			; Detect end of line 2
+;.endif
 	bne lloop		; no, repeat
 	ldx xtmp
 	rts
@@ -4765,9 +4776,6 @@ dline:
 	ldy sprline,x		; point to screenleft
 dline1:
 	lda objdta,x		; fetch spriteleft byte
-	sta z80_a		; save spriteright byte
-	lda z80_a
-	and z80_c		; mask left
 	eor (scraddr),y		; merge with screenleft
 	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenleft
@@ -4794,12 +4802,13 @@ dline2c:
 	sta (scraddr),y		; write screenmiddle
 	inx			; next spritebyte
 	iny			; point to screenmiddle
-
-	lda z80_a		; fetch spriteright byte
-	and z80_b		; mask right
+dline2d:
+	lda objdta,x		; fetch spritemiddle byte
 	eor (scraddr),y		; merge with screenright
 	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenright
+	inx			; next spritebyte
+	iny			; point to screenmiddle
 
 	rts
 
@@ -4809,10 +4818,6 @@ ddline:
 	ldy sprline,x		; point to screenleft
 ddline1:
 	lda objdta,x		; fetch spriteleft byte
-	sta z80_a		; save spriteright byte
-
-	lda z80_a
-	and z80_cp		; mask left
 	eor (z80_hlp),y		; merge with screenleft
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0
@@ -4839,20 +4844,21 @@ ddline2c:
 	sta (z80_hlp),y		; write spritedata3
 	inx			; next spritebyte
 	iny			; point to screenright
-
-	lda z80_a		; fetch spriteright byte
-	and z80_bp		; mask right
+ddline2d:
+	lda objdta,x		; fetch spritemiddle byte
 	eor (z80_hlp),y		; merge with screenright
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata5
+	inx			; next spritebyte
+	iny			; point to screenmiddle
 
 	rts
 
 sprline:
-	.byte $00,$01,$02,$03
-	.byte $28,$29,$2a,$2b
-	.byte $50,$51,$52,$53
-	.byte $78,$79,$7a,$7b
+	.byte $00,$01,$02,$03,$04
+	.byte $28,$29,$2a,$2b,$2c
+	.byte $50,$51,$52,$53,$54
+	.byte $78,$79,$7a,$7b,$7c
 
 ;----------------------------------------------------------------------
 ; Line drawn, now work out next target address.
@@ -6082,129 +6088,274 @@ evnt00:
         adc #1
         ldy #11
         sta (z80_ix),y
-        lda #30
-        ldy #11
-        cmp (z80_ix),y
-        bne *+5
-        jmp a00055
-        rts		; EXIT
-a00055: lda #0
-        ldy #11
-        sta (z80_ix),y
         lda #0
         sta varm
         lda joyval	; KEY
         and #8
         beq :+
-        jmp a00167
+        jmp a00117
 :
+        lda #4
+        ldy #6
+        sta (z80_ix),y
         lda #1
         sta varm
         jsr cangu	; CANGOUP
         beq :+
-        jmp a00167
+        jmp a00117
 :
-        lda #9
-        ldy #8
-        cmp (z80_ix),y
-        bcc *+5
-        jmp a00167
         ldy #8 		; SPRITEUP
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00167: lda joyval	; KEY
+a00117: lda joyval	; KEY
         and #4
         beq :+
-        jmp a00263
+        jmp a00200
 :
+        lda #5
+        ldy #6
+        sta (z80_ix),y
         lda #1
         sta varm
         jsr cangd	; CANGODOWN
         beq :+
-        jmp a00263
+        jmp a00200
 :
-        lda #57
-        ldy #8
-        cmp (z80_ix),y
-        bcc *+4
-        bne *+5
-        jmp a00263
         ldy #8 		; SPRITEDOWN
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00263: lda joyval	; KEY
+a00200: lda joyval	; KEY
         and #2
         beq :+
-        jmp a00354
+        jmp a00304
 :
+        lda #3
+        ldy #6
+        sta (z80_ix),y
         lda #1
         sta varm
         jsr cangl	; CANGOLEFT
         beq :+
-        jmp a00354
+        jmp a00304
 :
         lda #4
         ldy #9
         cmp (z80_ix),y
         bcc *+5
-        jmp a00354
+        jmp a00304
         ldy #9 		; SPRITELEFT
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00354: lda joyval	; KEY
+a00304: lda joyval	; KEY
         and #1
         beq :+
-        jmp a00450
+        jmp a00414
 :
+        lda #2
+        ldy #6
+        sta (z80_ix),y
         lda #1
         sta varm
         jsr cangr	; CANGORIGHT
         beq :+
-        jmp a00450
+        jmp a00414
 :
         lda #70
         ldy #9
         cmp (z80_ix),y
         bcc *+4
         bne *+5
-        jmp a00450
+        jmp a00414
         ldy #9 		; SPRITERIGHT
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00450: lda #0
+a00414: lda #0
         cmp varm
         bcc *+5
-        jmp a00478
-        lda #1		; ANIMATE
+        jmp a00442
+        lda #0		; ANIMATE
         jsr animsp
-a00478: ; SPRITEINK command
-        rts
+a00442: ; SPRITEINK command
+        lda #1 	; COLLISION
+        sta z80_b
+        jsr sktyp
+        bcs :+
+        jmp a00507
+:
+        lda #24		; AT
+        sta chary
+        lda #4
+        sta charx
+        lda #6		; PRINT
+        jsr dmsg
+        jmp a00535
+a00507: lda #24		; AT
+        sta chary
+        lda #4
+        sta charx
+        lda #7		; PRINT
+        jsr dmsg
+a00535: rts
 evnt01:
-        ldy #11
-        lda (z80_ix),y
-        clc
-        adc #1
-        ldy #11
-        sta (z80_ix),y
-        lda #30
-        ldy #11
-        cmp (z80_ix),y
-        beq *+5
-        jmp b00075
         lda #0		; ANIMATE
         jsr animsp
         lda #0
-        ldy #11
+        cmp varc
+        beq *+5
+        jmp b00120
+        lda #CUSTOM	; CUSTOM
+        sta z80_b
+        jsr tded
+        cmp z80_b
+        beq :+
+        jmp b00108
+:
+        lda #3
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda varrnd
+        ldy #10
         sta (z80_ix),y
-b00075: rts
+b00108: lda #1
+        sta varc
+        jmp b00128
+b00120: lda #0
+        sta varc
+b00128: lda #0
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00291
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp b00238
+:
+        lda #4
+        ldy #9
+        cmp (z80_ix),y
+        bcc *+5
+        jmp b00220
+        ldy #9 		; SPRITELEFT
+        lda (z80_ix),y
+        sec
+        sbc #1
+        sta (z80_ix),y
+        jmp b00233
+b00220: lda #1
+        ldy #10
+        sta (z80_ix),y
+b00233: jmp b00286
+b00238: lda #3
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda varrnd
+        ldy #10
+        sta (z80_ix),y
+b00286: jmp b00698
+b00291: lda #1
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00459
+        jsr cangr	; CANGORIGHT
+        beq :+
+        jmp b00405
+:
+        lda #70
+        ldy #9
+        cmp (z80_ix),y
+        bcc *+4
+        bne *+5
+        jmp b00387
+        ldy #9 		; SPRITERIGHT
+        lda (z80_ix),y
+        clc
+        adc #1
+        sta (z80_ix),y
+        jmp b00401
+b00387: lda #0
+        ldy #10
+        sta (z80_ix),y
+b00401: jmp b00454
+b00405: lda #3
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda varrnd
+        ldy #10
+        sta (z80_ix),y
+b00454: jmp b00698
+b00459: lda #2
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00580
+        jsr cangu	; CANGOUP
+        beq :+
+        jmp b00527
+:
+        ldy #8 		; SPRITEUP
+        lda (z80_ix),y
+        sec
+        sbc #1
+        sta (z80_ix),y
+        jmp b00575
+b00527: lda #3
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda varrnd
+        ldy #10
+        sta (z80_ix),y
+b00575: jmp b00698
+b00580: lda #3
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00698
+        jsr cangd	; CANGODOWN
+        beq :+
+        jmp b00649
+:
+        ldy #8 		; SPRITEDOWN
+        lda (z80_ix),y
+        clc
+        adc #1
+        sta (z80_ix),y
+        jmp b00698
+b00649: lda #3
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda varrnd
+        ldy #10
+        sta (z80_ix),y
+b00698: rts
 evnt02:
         rts
 evnt03:
@@ -6238,6 +6389,8 @@ j00037: lda #2
         sta (z80_ix),y
 j00073: rts
 evnt10:
+        lda #25 	; DELAY
+        jsr delay
         rts
 evnt11:
         rts
@@ -6245,29 +6398,19 @@ evnt12:
         lda #5 	; PAPER
         jsr setbgcol
         jsr cls		; CLS
+        lda #12		; AT
+        sta chary
+        lda #8
+        sta charx
+        lda #8		; PRINT
+        jsr dmsg
+        lda #200 	; DELAY
+        jsr delay
         rts
 evnt13:
         rts
 evnt14:
         jsr cls		; CLS
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda #0
-        sta chary
-        lda #14
-        sta charx
-        lda #2 	; INK
-        jsr setfgcol
-        lda #1		; PRINTMODE
-        sta prtmod
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda #24		; AT
-        sta chary
-        lda #7
-        sta charx
-        lda #4 	; INK
-        jsr setfgcol
         rts
 evnt15:
         rts
@@ -6281,7 +6424,7 @@ evnt17:
         lda #13
         sta charx
         ; COLOUR command
-        lda #6		; PRINT
+        lda #9		; PRINT
         jsr dmsg
         lda #2
         sta z80_c
@@ -6292,7 +6435,7 @@ evnt17:
         lda #13
         sta charx
         ; COLOUR command
-        lda #7		; PRINT
+        lda #10		; PRINT
         jsr dmsg
         jsr prskey	; WAITKEY
         rts
@@ -6304,7 +6447,7 @@ evnt19:
         sta chary
         lda #8
         sta charx
-        lda #8		; PRINT
+        lda #11		; PRINT
         jsr dmsg
         rts
 evnt20:
@@ -6317,45 +6460,126 @@ msgdat:
         .byte " GAM",197
         .byte " OVE",210
         .byte " NEW HIGH SCOR",197
+        .byte "HITTING SPRITE:",177
+        .byte "HITTING SPRITE:",160
+        .byte "TES",212
         .byte " GAME",160
         .byte " OVER",160
         .byte " NEW HIGH SCORE",160
 nummsg:
-        .byte 9
+        .byte 12
 chgfx:
         .byte 0,1
         .byte 127,1
+        .byte 0,1
 bprop:
         .byte 0
         .byte 2
+        .byte 6
 sprgfx:
-        .byte 100,96,48,56,120,123,119,116,41,115,115,38
-        .byte 44,48,112,96,112,118,127,121,35,102,115,57
-        .byte 100,96,48,56,120,123,119,116,43,127,127,39
-        .byte 44,48,112,96,112,118,127,121,35,111,127,63
-        .byte 100,124,124,56,117,127,122,127,110,43,55,61
-        .byte 44,120,124,116,127,122,117,127,44,55,111,107
-        .byte 100,124,124,56,117,127,122,127,62,107,39,109
-        .byte 44,120,124,116,127,122,117,127,124,39,63,43
+        .byte 100,96,48,56,32,120,123,119,116,32,41,115,115,38,32,32,32,32,32,32
+        .byte 48,32,32,96,32,98,110,61,49,32,103,47,47,59,32,32,35,35,32,32
+        .byte 32,32,32,32,32,41,120,116,38,32,62,126,125,109,32,34,44,44,33,32
+        .byte 40,48,112,96,36,96,118,127,121,48,34,102,115,57,33,32,32,32,32,32
+        .byte 96,32,32,32,48,32,57,127,102,32,42,59,47,103,37,32,34,35,33,32
+        .byte 32,32,32,32,32,34,100,124,56,33,104,109,127,62,52,32,41,44,38,32
+        .byte 100,96,48,56,32,120,123,119,116,32,41,112,112,38,32,32,32,32,32,32
+        .byte 48,32,32,96,32,98,110,61,49,32,103,35,35,59,32,32,35,35,32,32
+        .byte 32,32,32,32,32,41,120,116,38,32,62,46,45,109,32,34,44,44,33,32
+        .byte 40,48,112,96,36,96,118,127,121,48,34,100,112,56,33,32,32,32,32,32
+        .byte 96,32,32,32,48,32,57,127,102,32,42,51,35,99,37,32,34,35,33,32
+        .byte 32,32,32,32,32,34,100,124,56,33,104,45,47,46,52,32,41,44,38,32
+        .byte 100,96,48,56,32,120,123,119,116,32,43,127,127,39,32,32,32,32,32,32
+        .byte 48,32,32,96,32,98,110,61,49,32,111,127,127,63,32,32,35,35,32,32
+        .byte 32,32,32,32,32,41,120,116,38,32,126,126,125,125,32,34,47,47,33,32
+        .byte 40,48,112,96,36,96,118,127,121,48,34,111,127,63,33,32,32,32,32,32
+        .byte 96,32,32,32,48,32,57,127,102,32,42,127,127,127,37,32,34,35,33,32
+        .byte 32,32,32,32,32,34,100,124,56,33,104,125,127,126,52,32,43,47,39,32
+        .byte 100,124,124,56,32,117,127,122,127,32,110,43,55,61,32,32,32,32,32,32
+        .byte 48,112,112,96,32,54,127,107,125,32,123,111,63,119,32,34,32,33,33,32
+        .byte 32,32,32,32,32,57,127,111,118,32,109,127,126,63,32,43,34,37,39,32
+        .byte 40,120,124,116,36,106,122,117,127,53,40,55,111,107,36,32,32,32,32,32
+        .byte 96,96,112,48,48,104,107,55,127,52,98,63,127,111,49,32,33,34,34,32
+        .byte 32,32,32,32,32,98,110,63,125,49,42,126,125,127,37,34,37,43,42,33
+        .byte 100,124,124,56,32,117,127,122,127,32,62,107,39,109,32,32,32,32,32,32
+        .byte 48,112,112,96,32,54,127,107,125,32,123,111,63,119,32,33,34,32,34,32
+        .byte 32,32,32,32,32,57,127,111,118,32,109,127,126,63,32,39,42,33,43,32
+        .byte 40,120,124,116,36,106,122,117,127,53,104,39,63,43,52,32,32,32,32,32
+        .byte 96,96,112,48,48,104,107,55,127,52,98,63,127,111,49,34,32,33,32,33
+        .byte 32,32,32,32,32,98,110,63,125,49,42,126,125,127,37,42,33,39,34,37
+        .byte 100,60,124,36,32,110,119,33,32,32,32,43,47,36,32,32,32,32,32,32
+        .byte 48,112,112,48,32,122,61,39,32,32,34,111,124,48,32,32,32,32,32,32
+        .byte 32,32,32,32,32,105,119,63,33,32,43,125,112,32,32,32,34,35,33,32
+        .byte 40,120,108,60,32,40,127,51,32,32,32,34,47,45,32,32,32,32,32,32
+        .byte 96,96,112,112,32,96,127,46,33,32,32,43,125,116,32,32,32,32,32,32
+        .byte 32,32,32,32,32,34,126,123,39,32,34,111,116,48,32,32,32,35,35,32
+        .byte 32,120,116,32,32,110,127,127,61,32,32,43,39,32,32,32,32,32,32,32
+        .byte 32,96,48,32,32,120,127,127,116,32,34,111,63,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,96,126,125,48,32,43,127,127,39,32,32,34,33,32,32
+        .byte 32,96,124,48,32,40,127,127,127,36,32,34,47,33,32,32,32,32,32,32
+        .byte 32,32,112,32,32,96,126,127,125,48,32,43,127,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,120,127,116,32,34,111,127,63,33,32,32,35,32,32
+        .byte 40,124,108,56,32,32,34,123,61,32,40,47,39,32,32,32,32,32,32,32
+        .byte 96,112,112,96,32,32,43,110,117,32,96,124,63,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,34,111,123,54,32,32,112,126,39,32,34,35,33,32,32
+        .byte 32,108,60,116,36,32,32,99,127,36,32,46,47,33,32,32,32,32,32,32
+        .byte 32,112,112,48,48,32,34,45,127,48,32,120,126,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,43,119,125,33,32,96,120,63,33,32,35,35,32,32
+        .byte 32,120,116,32,32,110,127,127,61,32,32,43,39,32,32,32,32,32,32,32
+        .byte 32,96,48,32,32,120,127,127,116,32,34,111,63,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,96,126,125,48,32,43,127,127,39,32,32,34,33,32,32
+        .byte 32,96,124,48,32,40,127,127,127,36,32,34,47,33,32,32,32,32,32,32
+        .byte 32,32,112,32,32,96,126,127,125,48,32,43,127,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,120,127,116,32,34,111,127,63,33,32,32,35,32,32
+        .byte 116,32,32,120,32,119,125,122,63,32,38,43,35,32,32,32,32,32,32,32
+        .byte 48,32,32,96,32,63,116,104,127,32,59,111,47,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,125,48,96,126,32,109,127,126,39,32,33,34,32,32,32
+        .byte 104,48,32,96,52,106,123,116,127,37,40,35,39,33,32,32,32,32,32,32
+        .byte 96,32,32,32,48,106,109,48,126,53,98,47,63,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,106,116,32,120,53,42,126,125,63,33,34,32,33,32,32
+        .byte 32,120,116,32,32,110,127,127,61,32,32,43,39,32,32,32,32,32,32,32
+        .byte 32,96,48,32,32,120,127,127,116,32,34,111,63,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,96,126,125,48,32,43,127,127,39,32,32,34,33,32,32
+        .byte 32,96,124,48,32,40,127,127,127,36,32,34,47,33,32,32,32,32,32,32
+        .byte 32,32,112,32,32,96,126,127,125,48,32,43,127,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,120,127,116,32,34,111,127,63,33,32,32,35,32,32
+        .byte 100,120,112,32,32,119,63,107,125,32,39,32,32,43,32,32,32,32,32,32
+        .byte 48,96,32,32,32,62,127,111,116,32,63,33,34,111,32,32,32,32,32,32
+        .byte 32,32,32,32,32,121,126,124,48,32,125,39,42,127,32,33,32,32,34,32
+        .byte 40,112,116,48,32,106,123,39,127,52,42,33,32,34,37,32,32,32,32,32
+        .byte 96,32,48,32,32,104,111,63,125,48,106,39,32,43,53,32,32,32,32,32
+        .byte 32,32,32,32,32,98,124,125,116,32,106,62,33,111,53,34,32,32,32,33
+        .byte 32,120,116,32,32,110,127,127,61,32,32,43,39,32,32,32,32,32,32,32
+        .byte 32,96,48,32,32,120,127,127,116,32,34,111,63,33,32,32,32,32,32,32
+        .byte 32,32,32,32,32,96,126,125,48,32,43,127,127,39,32,32,34,33,32,32
+        .byte 32,96,124,48,32,40,127,127,127,36,32,34,47,33,32,32,32,32,32,32
+        .byte 32,32,112,32,32,96,126,127,125,48,32,43,127,39,32,32,32,32,32,32
+        .byte 32,32,32,32,32,32,120,127,116,32,34,111,127,63,33,32,32,35,32,32
 frmlst:
-        .byte 0,2
-        .byte 2,2,4,0
+        .byte 0,3
+        .byte 3,2
+        .byte 5,2
+        .byte 7,2
+        .byte 9,2
+        .byte 11,2,13,0
 scdat:
-        .word 330
-        .byte 255,1,40,255,0,9,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9,1,1,255,0,9,1,255,0,4,1,0,0,0
-        .byte 1,255,0,8,1,255,0,9,1,1,255,0,9,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9,1,1,255,0,4
-        .byte 255,1,6,255,0,4,1,0,0,0,1,255,0,4,255,1,5,255,0,4,255,1,7,255,0,37,1,1,255,0,37,1,1
-        .byte 255,0,37,1,1,255,0,4,255,1,6,255,0,4,255,1,9,255,0,4,255,1,6,255,0,4,1,1,255,0,9,1,255,0,17
-        .byte 1,255,0,9,1,1,255,0,9,1,255,0,17,1,255,0,9,1,1,255,0,9,1,255,0,17,1,255,0,9,255,1,7
-        .byte 255,0,4,255,1,19,255,0,4,255,1,6,255,0,117,255,1,6,255,0,4,255,1,19,255,0,4,255,1,7,255,0,4
+        .word 372
+        .byte 255,1,40,2,2,255,0,7,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9,1,1,255,0,9,1,255,0,4
+        .byte 1,0,0,0,1,255,0,8,1,255,0,9,1,1,255,0,9,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9
+        .byte 1,1,255,0,4,255,1,6,255,0,4,1,0,0,0,1,255,0,4,255,1,5,255,0,4,255,1,7,2,2,255,0,9
+        .byte 2,2,255,0,7,2,2,255,0,7,2,2,0,0,0,2,2,0,1,1,255,0,37,1,1,255,0,37,1,1,255,0,4
+        .byte 255,1,6,255,0,4,255,1,9,255,0,4,255,1,6,255,0,4,1,1,2,2,255,0,5,2,2,1,255,0,17,1,0
+        .byte 2,2,0,0,0,2,2,0,1,1,255,0,9,1,255,0,17,1,255,0,9,1,1,255,0,9,1,255,0,17,1,255,0,9
+        .byte 255,1,7,255,0,4,255,1,19,255,0,4,255,1,6,255,0,7,2,2,255,0,21,2,2,255,0,85,255,1,6,255,0,4
+        .byte 255,1,19,255,0,4,255,1,7,255,0,4,1,255,0,9,1,255,0,7,1,255,0,9,1,255,0,4,1,1,255,0,4
         .byte 1,255,0,9,1,255,0,7,1,255,0,9,1,255,0,4,1,1,255,0,4,1,255,0,9,1,255,0,7,1,255,0,9
-        .byte 1,255,0,4,1,1,255,0,4,1,255,0,9,1,255,0,7,1,255,0,9,1,255,0,4,1,1,255,0,4,1,255,0,4
-        .byte 1,255,0,4,255,1,9,255,0,4,1,255,0,4,1,255,0,4,1,1,255,0,9,1,255,0,17,1,255,0,9,1,1
-        .byte 255,0,9,1,255,0,17,1,255,0,9,1,1,255,0,9,1,255,0,17,1,255,0,9,255,1,40
+        .byte 1,255,0,4,1,1,255,0,4,1,255,0,4,1,255,0,4,255,1,9,255,0,4,1,255,0,4,1,255,0,4,1,1
+        .byte 255,0,9,1,255,0,17,1,255,0,9,1,1,255,0,9,1,255,0,17,1,255,0,9,1,1,255,0,9,1,255,0,17
+        .byte 1,255,0,9,255,1,40
 numsc:
         .byte 1
 nmedat:
-        .byte 0,0,40,20,1,1,40,10,255
+        .byte 0,0,39,20,1,1,39,10,255
 NUMOBJ = 1
 objdta:
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40,80,0,40,80

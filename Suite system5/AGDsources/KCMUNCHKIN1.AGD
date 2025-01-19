@@ -119,17 +119,29 @@ DEFINEBLOCK CUSTOMBLOCK  $00,1
 
 ; Player front
 DEFINESPRITE 3
-	100,96,48,56,
-	120,123,119,116,
-	41,115,115,38
+32,32,112,32,
+32,42,55,32,
+32,39,105,48
 
-	100,96,48,56,
-	120,123,119,116,
-	41,112,112,38
+32,32,112,32,
+32,104,119,32,
+32,60,43,36
 
-	100,96,48,56,
-	120,123,119,116,
-	43,127,127,39
+32,32,124,32,
+32,106,117,48,
+32,32,117,32
+
+;	100,96,48,56,
+;	120,123,119,116,
+;	41,115,115,38
+
+;	100,96,48,56,
+;	120,123,119,116,
+;	41,112,112,38
+
+;	100,96,48,56,
+;	120,123,119,116,
+;	43,127,127,39
 
 DEFINESPRITE 2
 	100,124,124,56,
@@ -208,8 +220,8 @@ DEFINESCREEN
 	1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 
-SPRITEPOSITION 0,0,39,20
-SPRITEPOSITION 1,1,39,10
+SPRITEPOSITION 0,0,40,20
+SPRITEPOSITION 1,1,40,10
 
 
 DEFINEOBJECT 0,0,40,80
@@ -281,65 +293,239 @@ ADD 1 TO SETTINGA
 
 EVENT SPRITETYPE1
 
-; ADD 1 TO SETTINGA
- ANIMATE
-; IF SETTINGA 30
-;  LET SETTINGA 0
+;------------------------------------
+; Check collision player
+;------------------------------------
 
-  IF C 0
-    IF CUSTOM
-     GETRANDOM 3
-     LET DIRECTION RND
+;  IF COLLISION 0
+;    LET I IMAGE
+;    REMOVE
+;    SPAWN 2 8			; Spawn ghost-eyes
+;    SPAWNED
+;      LET SETTINGA I		; Remember image
+;    ENDSPRITE
+;    EXIT
+;  ENDIF
+
+;------------------------------------
+; Check for leaving home
+;------------------------------------
+
+  IF X 128
+    IF Y 32
+      LET DIRECTION UP
     ENDIF
-    LET C 1
-  ELSE
-   LET C 0
   ENDIF
 
-  IF DIRECTION 0
-   IF CANGOLEFT
-    IF X > 4
-     SPRITELEFT
-    ELSE
-     DIRECTION 1
-    ENDIF
-   ELSE
-    GETRANDOM 3
-    LET DIRECTION RND
-   ENDIF
+;------------------------------------
+; Check cango directions
+;------------------------------------
+
+  LET S 0			; CANGOLEFT
+  LET T 0			; CANGORIGHT
+  LET U 0			; CANGOUP
+  LET V 0			; CANGODOWN
+
+  LET M X
+  DIVIDE M BY 16
+  MULTIPLY M BY 16
+  LET N Y
+  DIVIDE N BY 8
+  MULTIPLY N BY 8
+
+; Check cangoleft
+
+  LET I X
+  LET J 0
+  GETBLOCK I Y
+  IF BLOCK = FODDERBLOCK
+    LET J 1
   ELSE
-   IF DIRECTION 1
-    IF CANGORIGHT
-     IF X < 70
-      SPRITERIGHT
-     ELSE
-      DIRECTION 0
-     ENDIF
+    SUBTRACT 1 FROM I
+    GETBLOCK I Y
+    IF BLOCK WALLBLOCK
+      LET J 1
     ELSE
-     GETRANDOM 3
-     LET DIRECTION RND
-    ENDIF
-   ELSE
-    IF DIRECTION 2
-     IF CANGOUP
-      SPRITEUP
-     ELSE
-      GETRANDOM 3
-      LET DIRECTION RND
-     ENDIF
-    ELSE
-     IF DIRECTION 3
-      IF CANGODOWN
-       SPRITEDOWN
-      ELSE
-       GETRANDOM 3
-       LET DIRECTION RND
+      IF BLOCK PLATFORMBLOCK
+        LET J 1
       ENDIF
-     ENDIF
     ENDIF
-   ENDIF
   ENDIF
-; ENDIF
+  IF J 0
+    LET S 1
+  ENDIF
+
+; Check cangoright
+
+  LET I X
+  LET J 0
+  ADD 8 TO I
+  GETBLOCK I Y
+  IF BLOCK PLATFORMBLOCK
+    LET J 1
+  ELSE
+    IF BLOCK WALLBLOCK
+      LET J 1
+    ELSE
+      ADD 8 TO I
+      GETBLOCK I Y
+      IF BLOCK FODDERBLOCK
+        LET J 1
+      ENDIF
+    ENDIF
+  ENDIF
+  IF J 0
+    LET T 1
+  ENDIF
+
+; Check cangoup
+
+  LET I Y
+  LET J 0
+  SUBTRACT 1 FROM I
+  GETBLOCK X I
+  IF BLOCK = LADDERBLOCK
+    LET J 1
+  ELSE
+    IF BLOCK WALLBLOCK
+      LET J 1
+    ENDIF
+  ENDIF
+  IF J 0
+    LET U 1
+  ENDIF
+
+; Check cangodown
+
+  LET I Y
+  LET J 0
+  GETBLOCK X I
+  IF BLOCK = WALLBLOCK
+    LET J 1
+  ELSE
+    IF BLOCK LADDERBLOCK
+      LET J 1
+    ENDIF
+  ENDIF
+  IF J 0
+    LET V 1
+  ENDIF
+
+;------------------------------------
+; Check end of horizontal directions
+;------------------------------------
+
+  LET I 0
+  IF DIRECTION LEFT
+    IF S 1
+      SPRITELEFT
+    ELSE
+      LET I 1			; Handle vertical
+    ENDIF
+  ENDIF 
+
+  IF DIRECTION RIGHT
+    IF T 1
+      SPRITERIGHT
+    ELSE
+      LET I 1			; Handle vertical
+    ENDIF
+  ENDIF
+
+;------------------------------------
+; Check end of vertical directions
+;------------------------------------
+
+  IF DIRECTION UP
+    IF U 1
+      SPRITEUP
+    ELSE
+      LET I 2			; Handle horizontal
+    ENDIF
+  ENDIF
+
+  IF DIRECTION DOWN
+    IF V 1
+      SPRITEDOWN
+    ELSE
+      LET I 2			; Handle horizontal
+    ENDIF
+  ENDIF
+
+;------------------------------------
+; Check if sprite on junction
+;------------------------------------
+
+  IF M X
+    IF N Y
+      IF I 0			; Not end of direction
+        IF DIRECTION LEFT
+          LET I 1		; Check vertical
+        ENDIF
+        IF DIRECTION RIGHT
+          LET I 1		; Check vertical
+        ENDIF
+        IF DIRECTION UP
+          LET I 2		; Check horizontal
+        ENDIF
+        IF DIRECTION DOWN
+          LET I 2		; Check horizontal
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+
+;------------------------------------
+; Handle vertical
+;------------------------------------
+
+  IF I 1
+    GETRANDOM 2
+    IF RND 0
+      IF U 1
+        LET DIRECTION UP
+      ELSE
+        IF V 1
+          LET DIRECTION DOWN
+        ENDIF
+      ENDIF
+    ELSE
+      IF V 1
+        LET DIRECTION DOWN
+      ELSE
+        IF U 1
+          LET DIRECTION UP
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+
+;------------------------------------
+; Handle horizontal
+;------------------------------------
+
+  IF I 2
+    GETRANDOM 2
+    IF RND 0
+      IF S 1
+        LET DIRECTION LEFT
+      ELSE
+        IF T 1
+          LET DIRECTION RIGHT
+        ENDIF
+      ENDIF
+    ELSE
+      IF T 1
+        LET DIRECTION RIGHT
+      ELSE
+        IF S 1
+          LET DIRECTION LEFT
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+
+  ANIMATE SLOW
 
 EVENT SPRITETYPE2
 
@@ -364,15 +550,12 @@ EVENT INITSPRITE
  ENDIF
 
 EVENT MAINLOOP1
- DELAY 25
 
 EVENT MAINLOOP2
 
 EVENT INTROMENU
 PAPER 5
 CLS
-AT 12,8:PRINT"TEST"
-DELAY 200
 
 EVENT GAMEINIT
 

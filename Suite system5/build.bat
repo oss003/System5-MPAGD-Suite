@@ -42,8 +42,10 @@ rem Makedisk
 rem Start emulator
  echo Starting emulator with %1.atm
  cd ..\..\MAME264
- mame acrnsys3 -flop1 discs\%1.ssd -bus1 32k -autoboot_command "agdgame\n" -debug
- cd ..
+rem mame acrnsys3 -flop1 discs\%1.ssd -bus1 32k -autoboot_command "agdgame\n" -debug
+ mame acrnsys5 -flop1 discs\%1.ssd -bus6 vdu40 -autoboot_command "agdgame\n" -debug
+
+cd ..
  goto end
 
 :error

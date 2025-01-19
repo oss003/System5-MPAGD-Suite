@@ -1625,53 +1625,23 @@ void CreateBlocks( void )
 
 void CreateSprites( void )
 {
-	short int dByte0;
-	short int dByte1;
-	short int dByte2;
-	short int dByte3;
-	short int lNibble0;
-	short int rNibble0;
-	short int lNibble1;
-	short int rNibble1;
-	short int lNibble2;
-	short int rNibble2;
-	short int lNibble3;
-	short int rNibble3;
-
-	short int nDataMax;
 	short int nData;
 	unsigned char *cSrc;									/* source pointer. */
 	short int nCounter = 0;
 	short int nFrame = 0;
-	short int nShifts = 0;
-	short int nShiftsMax = 0;
-	short int nLoop = 0;
-	unsigned char cByte[ 5 ];
 	char cFrames[ 256 ];
 
-	/* define max sprite value upon flagB */
-	if (flagB)
-	{
-		nDataMax = 4;	//Rows 24;
-	}
-	else
-	{
-		nDataMax = 3;	//Rows 16;
-	}
-	/* define max shifts upon flagR */
-	if (flagR)
-	{
-		nShiftsMax = 1;	//Nr of shifts
-	}
-	else
-	{
-		nShiftsMax = 2;//Nr of shifts
-	}
+	int i;
+	int j;
+	int row;
+	int col;
+	int ptr;
 
-	/* Set up source address. */
+	unsigned char spr_data[120];
+
 	cSrc = cBufPos;
 
-	/* reset compilation address. */
+/* reset compilation address. */
 	nCurrent = nAddress;
 	nNextLabel = 0;
 
@@ -1684,63 +1654,100 @@ void CreateSprites( void )
 		cFrames[ nCounter ] = *cSrc++;						/* store frames in array. */
 		cBufPos = cSrc;
 
-printf("cFrames=%d, nDataMax=%d, nShifts=%d\n",cFrames[nCounter],nDataMax,nShiftsMax);
 		for ( nFrame = 0; nFrame < cFrames[ nCounter ]; nFrame++ )
 		{
-			for ( nShifts = 0; nShifts < nShiftsMax; nShifts++ )
-			{
-				cSrc = cBufPos;
-				WriteText( "\n        .byte " );						/* start of text message */
-				nData = 0;
-				while ( nData++ < nDataMax )
-				{
-					cByte[ 0 ] = *cSrc++;
-					cByte[ 1 ] = *cSrc++;
-					cByte[ 2 ] = *cSrc++;
-					cByte[ 3 ] = *cSrc++;
-					cByte[ 4 ] = 0;
 
-					for( nLoop = 0; nLoop < nShifts; nLoop++ )		/* pre-shift the sprite */
-					{
-						// Horizontal shift 1 pixel
+// Clear array
 
-						lNibble0 = (cByte[0] & 0x15) << 1;
-						if (lNibble0 > 31) lNibble0 += 32;
-						rNibble0 = (cByte[0] & 0x4a) >> 1;
-						if (rNibble0 > 31) rNibble0 -= 16;
+			for (i=0; i<120; i++){
+				spr_data[i]=0x20;
+			}
 
-						lNibble1 = (cByte[1] & 0x15) << 1;
-						if (lNibble1 > 31) lNibble1 += 32;
-						rNibble1 = (cByte[1] & 0x4a) >> 1;
-						if (rNibble1 > 31) rNibble1 -= 16;
+// Read sprite 0
+	
+			for (row=0; row<3; row++){
+				for (col=0; col<4; col++){
+					spr_data[row*5+col]=*cSrc++;
+				}
+			} 	
 
-						lNibble2 = (cByte[2] & 0x15) << 1;
-						if (lNibble2 > 31) lNibble2 += 32;
-						rNibble2 = (cByte[2] & 0x4a) >> 1;
-						if (rNibble2 > 31) rNibble2 -= 16;
+// Create sprite 3, bit 0+2+4 let byte and bit 1+3+6 right byte are always 0
 
-						lNibble3 = (cByte[3] & 0x15) << 1;
-						if (lNibble3 > 31) lNibble3 += 32;
-						rNibble3 = (cByte[3] & 0x4a) >> 1;
-						if (rNibble3 > 31) rNibble3 -= 16;
+			for (row=0; row<4; row++){
+				ptr=row*5;
+				spr_data[ptr+60] |= ((spr_data[ptr+0] >> 0) & 1) << 1;
+				spr_data[ptr+60] |= ((spr_data[ptr+0] >> 2) & 1) << 3;
+				spr_data[ptr+60] |= ((spr_data[ptr+0] >> 4) & 1) << 6;
 
-						cByte[0] = (rNibble3 + lNibble0);
-						cByte[1] = (rNibble0 + lNibble1);
-						cByte[2] = (rNibble1 + lNibble2);
-						cByte[3] = (rNibble2 + lNibble3);
+				spr_data[ptr+61] |= ((spr_data[ptr+0] >> 1) & 1) << 0;
+				spr_data[ptr+61] |= ((spr_data[ptr+1] >> 0) & 1) << 1;
+				spr_data[ptr+61] |= ((spr_data[ptr+0] >> 3) & 1) << 2;
+				spr_data[ptr+61] |= ((spr_data[ptr+1] >> 2) & 1) << 3;
+				spr_data[ptr+61] |= ((spr_data[ptr+0] >> 6) & 1) << 4;
+				spr_data[ptr+61] |= ((spr_data[ptr+1] >> 4) & 1) << 6;
+
+				spr_data[ptr+62] |= ((spr_data[ptr+1] >> 1) & 1) << 0;
+				spr_data[ptr+62] |= ((spr_data[ptr+2] >> 0) & 1) << 1;
+				spr_data[ptr+62] |= ((spr_data[ptr+1] >> 3) & 1) << 2;
+				spr_data[ptr+62] |= ((spr_data[ptr+2] >> 2) & 1) << 3;
+				spr_data[ptr+62] |= ((spr_data[ptr+1] >> 6) & 1) << 4;
+				spr_data[ptr+62] |= ((spr_data[ptr+2] >> 4) & 1) << 6;
+
+				spr_data[ptr+63] |= ((spr_data[ptr+2] >> 1) & 1) << 0;
+				spr_data[ptr+63] |= ((spr_data[ptr+3] >> 0) & 1) << 1;
+				spr_data[ptr+63] |= ((spr_data[ptr+2] >> 3) & 1) << 2;
+				spr_data[ptr+63] |= ((spr_data[ptr+3] >> 2) & 1) << 3;
+				spr_data[ptr+63] |= ((spr_data[ptr+2] >> 6) & 1) << 4;
+				spr_data[ptr+63] |= ((spr_data[ptr+3] >> 4) & 1) << 6;
+
+				spr_data[ptr+64] |= ((spr_data[ptr+3] >> 1) & 1) << 0;
+				spr_data[ptr+64] |= ((spr_data[ptr+3] >> 3) & 1) << 2;
+				spr_data[ptr+64] |= ((spr_data[ptr+3] >> 6) & 1) << 4;
+			}
+
+// Create sprite 1+2+4+5, bit 0+1 top byte and bit 4+6 bottom byte are always 0
+
+			for (i=0; i<2; i++){
+				for (j=0; j<2; j++){
+					for (col=0; col<5; col++){
+						ptr=col+j*20+i*60;
+						spr_data[ptr+20] |= ((spr_data[ptr+0] >> 0) & 1) << 2;
+						spr_data[ptr+20] |= ((spr_data[ptr+0] >> 1) & 1) << 3;
+						spr_data[ptr+20] |= ((spr_data[ptr+0] >> 2) & 1) << 4;
+						spr_data[ptr+20] |= ((spr_data[ptr+0] >> 3) & 1) << 6;
+
+						spr_data[ptr+25] |= ((spr_data[ptr+0] >> 4) & 1) << 0;
+						spr_data[ptr+25] |= ((spr_data[ptr+0] >> 6) & 1) << 1;
+						spr_data[ptr+25] |= ((spr_data[ptr+5] >> 0) & 1) << 2;
+						spr_data[ptr+25] |= ((spr_data[ptr+5] >> 1) & 1) << 3;
+						spr_data[ptr+25] |= ((spr_data[ptr+5] >> 2) & 1) << 4;
+						spr_data[ptr+25] |= ((spr_data[ptr+5] >> 3) & 1) << 6;
+
+						spr_data[ptr+30] |= ((spr_data[ptr+5] >> 4) & 1) << 0;
+						spr_data[ptr+30] |= ((spr_data[ptr+5] >> 6) & 1) << 1;
+						spr_data[ptr+30] |= ((spr_data[ptr+10] >> 0) & 1) << 2;
+						spr_data[ptr+30] |= ((spr_data[ptr+10] >> 1) & 1) << 3;
+						spr_data[ptr+30] |= ((spr_data[ptr+10] >> 2) & 1) << 4;
+						spr_data[ptr+30] |= ((spr_data[ptr+10] >> 3) & 1) << 6;
+
+						spr_data[ptr+35] |= ((spr_data[ptr+10] >> 4) & 1) << 0;
+						spr_data[ptr+35] |= ((spr_data[ptr+10] >> 6) & 1) << 1;
+						spr_data[ptr+35] |= ((spr_data[ptr+15] >> 0) & 1) << 2;
+						spr_data[ptr+35] |= ((spr_data[ptr+15] >> 1) & 1) << 3;
 					}
+				}
+			}
 
-					WriteNumber( cByte[0] | 0x20);	/* write byte of data */
-					WriteText( "," );		/* put a comma */
-					WriteNumber( cByte[1] | 0x20);	/* write byte of data */
-					WriteText( "," );		/* put a comma */
-					WriteNumber( cByte[2] | 0x20);	/* write byte of data */
-					WriteText( "," );		/* put a comma */
-					WriteNumber( cByte[3] | 0x20);	/* write byte of data */
+// Print spritedata
 
-					if ( nData < nDataMax )
-					{
-						WriteText( "," );	/* more to come; put a comma */
+			for (i=0; i<6; i++){
+				WriteText( "\n        .byte " );						/* start of text message */
+				for (row=0; row<4; row++){
+					for (col=0; col<5; col++){
+						WriteNumber(spr_data[col+row*5+i*20]);
+						if ((row*5+col)!=19 ){
+							WriteText( "," );		/* put a comma */
+						}
 					}
 				}
 			}
@@ -1752,13 +1759,12 @@ printf("cFrames=%d, nDataMax=%d, nShifts=%d\n",cFrames[nCounter],nDataMax,nShift
 	}
 	while ( ( cSrc - cBuff ) < lSize );
 
-	/* Now do the frame list. */
+/* Now do the frame list. */
 	WriteText( "\nfrmlst:" );
 	nData = 0;
 	nFrame = 0;
 	while ( nData < nCounter )
 	{
-//		WriteText( "\n      .byte " );
 		WriteInstruction( ".byte " );
 		WriteNumber( nFrame );
 		WriteText( "," );

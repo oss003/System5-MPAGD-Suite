@@ -1891,6 +1891,7 @@ LFEC0:      cpy #$18
             jmp LFEC0
 LFECB:      jsr LFDD7
             jmp LFE6B
+
 LFED1:      lda #$20
             ldy #$00
 LFED5:      sta L0400,Y
@@ -1922,7 +1923,8 @@ LFEF6:      sty L0800
             lda #$04
             sta L00D0
             jmp LFE69
-            ldx #$19
+
+LFF0D:      ldx #$19
 LFF0F:      lda LFF9C,X
             sta L0202,X
             dex
@@ -1974,6 +1976,7 @@ LFF6D:      jsr LF009
 LFF80:      jsr LF029
             jsr LFFF7
             jmp LFF80
+
 LFF89:      .byte "BOOT"
             .byte $0D
 
@@ -1996,7 +1999,8 @@ LFF9C:      .byte $7A,$FF,$31,$F5,$2E,$F4,$7B,$FD
             .byte $53,$FD,$C0,$F4,$76,$F6,$88,$FA
             .byte $C7,$FC,$17,$FB,$E3,$FB,$7A,$F9
             .byte $C5,$F8
-            sta L00FF
+
+LFFB6:      sta L00FF
             pla
             pha
             and #$10
@@ -2004,10 +2008,12 @@ LFF9C:      .byte $7A,$FF,$31,$F5,$2E,$F4,$7B,$FD
             lda L00FF
             pha
             jmp (L0204)
+
 LFFC4:      lda L00FF
             plp
             php
             jmp (L0202)
+
 LFFCB:      jmp (L021A)
 LFFCE:      jmp (L0218)
 LFFD1:      jmp (L0216)

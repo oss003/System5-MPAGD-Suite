@@ -6067,7 +6067,7 @@ bcolour:	.byte g_white
 WINDOWTOP = 1
 WINDOWLFT = 1
 WINDOWHGT = 22
-WINDOWWID = 30 ;a
+WINDOWWID = 30 ;
 MAPWID = 3
         .byte 255,255,255
 mapdat:
@@ -6076,7 +6076,135 @@ mapdat:
 stmap:  .byte 1
 
 evnt00:
-        rts
+        lda #0
+        sta varm
+        lda joyval	; KEY
+        and #8
+        beq :+
+        jmp a00078
+:
+        lda #1
+        sta varm
+        jsr cangu	; CANGOUP
+        beq :+
+        jmp a00078
+:
+        ldy #8 		; SPRITEUP
+        lda (z80_ix),y
+        sec
+        sbc #1
+        sta (z80_ix),y
+a00078: lda joyval	; KEY
+        and #4
+        beq :+
+        jmp a00147
+:
+        lda #1
+        sta varm
+        jsr cangd	; CANGODOWN
+        beq :+
+        jmp a00147
+:
+        ldy #8 		; SPRITEDOWN
+        lda (z80_ix),y
+        clc
+        adc #1
+        sta (z80_ix),y
+a00147: lda joyval	; KEY
+        and #2
+        beq :+
+        jmp a00216
+:
+        lda #1
+        sta varm
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp a00216
+:
+        ldy #9 		; SPRITELEFT
+        lda (z80_ix),y
+        sec
+        sbc #1
+        sta (z80_ix),y
+a00216: lda joyval	; KEY
+        and #1
+        beq :+
+        jmp a00286
+:
+        lda #1
+        sta varm
+        jsr cangr	; CANGORIGHT
+        beq :+
+        jmp a00286
+:
+        ldy #9 		; SPRITERIGHT
+        lda (z80_ix),y
+        clc
+        adc #1
+        sta (z80_ix),y
+a00286: lda #0
+        cmp varm
+        bcc *+5
+        jmp a00314
+        lda #1		; ANIMATE
+        jsr animsp
+a00314: ; SPRITEINK command
+        lda #23		; AT
+        sta chary
+        lda #22
+        sta charx
+        lda #1 	; COLLISION
+        sta z80_b
+        jsr sktyp
+        bcs :+
+        jmp a00428
+:
+        lda skptr	; OTHER
+        sta z80_x
+        lda skptr+1
+        sta z80_i
+        ldy #5
+        lda (z80_ix),y	; DISPLAY
+        jsr disply
+        lda ogptr	; ENDSPRITE
+        sta z80_x
+        lda ogptr+1
+        sta z80_i
+        jmp a00586
+a00428: lda #2 	; COLLISION
+        sta z80_b
+        jsr sktyp
+        bcs :+
+        jmp a00575
+:
+        lda skptr	; OTHER
+        sta z80_x
+        lda skptr+1
+        sta z80_i
+        ldy #5
+        lda (z80_ix),y	; DISPLAY
+        jsr disply
+        lda #6		; PRINT
+        jsr dmsg
+        lda #0
+        ldy #6
+        cmp (z80_ix),y
+        beq *+5
+        jmp a00541
+        lda #1
+        ldy #6
+        sta (z80_ix),y
+        jmp a00554
+a00541: lda #0
+        ldy #6
+        sta (z80_ix),y
+a00554: lda ogptr	; ENDSPRITE
+        sta z80_x
+        lda ogptr+1
+        sta z80_i
+a00575: lda #7		; PRINT
+        jsr dmsg
+a00586: rts
 evnt01:
         rts
 evnt02:
@@ -6096,364 +6224,126 @@ evnt08:
 evnt09:
         rts
 evnt10:
-        lda #170
-        sta vara
-        lda #0		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #1		; PRINTMODE
-        sta prtmod
-        lda #0		; PRINT
-        jsr dmsg
-        lda vara	; DISPLAY
-        jsr disply
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda vara
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #3		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00189
-        lda #1		; PRINT
-        jsr dmsg
-        jmp k00199
-k00189: lda #2		; PRINT
-        jsr dmsg
-k00199: lda vara
-        sta vari
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #4		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00327
-        lda #3		; PRINT
-        jsr dmsg
-        jmp k00337
-k00327: lda #4		; PRINT
-        jsr dmsg
-k00337: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #5		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00468
-        lda #5		; PRINT
-        jsr dmsg
-        jmp k00478
-k00468: lda #6		; PRINT
-        jsr dmsg
-k00478: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #6		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00613
-        lda #7		; PRINT
-        jsr dmsg
-        jmp k00623
-k00613: lda #8		; PRINT
-        jsr dmsg
-k00623: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #7		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00761
-        lda #9		; PRINT
-        jsr dmsg
-        jmp k00771
-k00761: lda #10		; PRINT
-        jsr dmsg
-k00771: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #8		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00913
-        lda #11		; PRINT
-        jsr dmsg
-        jmp k00924
-k00913: lda #12		; PRINT
-        jsr dmsg
-k00924: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #9		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01069
-        lda #13		; PRINT
-        jsr dmsg
-        jmp k01079
-k01069: lda #14		; PRINT
-        jsr dmsg
-k01079: lda vara
-        sta vari
-        lda vari
-        asl a
-        rol a
-        and #1
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #10		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01215
-        lda #15		; PRINT
-        jsr dmsg
-        jmp k01225
-k01215: lda #16		; PRINT
-        jsr dmsg
-k01225: lda #11		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #17		; PRINT
-        jsr dmsg
-        lda #1
-        sta varb
-        lda varb	; DISPLAY
-        jsr disply
-        jsr prskey	; WAITKEY
         rts
 evnt11:
         rts
 evnt12:
-        jsr cls		; CLS
         rts
 evnt13:
         rts
 evnt14:
+        jsr cls		; CLS
+        lda #0		; PRINTMODE
+        sta prtmod
+        lda #0
+        sta chary
+        lda #10
+        sta charx
+        lda #8		; PRINT
+        jsr dmsg
+        lda #23
+        sta chary
+        lda #7
+        sta charx
+        lda #9		; PRINT
+        jsr dmsg
         rts
 evnt15:
         rts
 evnt16:
         rts
 evnt17:
+        lda #1		; PRINTMODE
+        sta prtmod
+        lda #8
+        sta chary
+        lda #13
+        sta charx
+        ; COLOUR command
+        lda #10		; PRINT
+        jsr dmsg
+        lda #2
+        sta z80_c
+        lda chary
+        clc
+        adc z80_c
+        sta chary
+        lda #13
+        sta charx
+        ; COLOUR command
+        lda #11		; PRINT
+        jsr dmsg
+        jsr prskey	; WAITKEY
         rts
 evnt18:
         rts
 evnt19:
+        ; COLOUR command
+        lda #14
+        sta chary
+        lda #8
+        sta charx
+        lda #12		; PRINT
+        jsr dmsg
         rts
 evnt20:
         rts
 ptcusr: rts
 msgdat:
-        .byte "BIT TEST:",160
-        .byte "BIT0 SE",212
-        .byte "BIT0 CLEA",210
-        .byte "BIT1 SE",212
-        .byte "BIT1 CLEA",210
-        .byte "BIT2 SE",212
-        .byte "BIT2 CLEA",210
-        .byte "BIT3 SE",212
-        .byte "BIT3 CLEA",210
-        .byte "BIT4 SE",212
-        .byte "BIT4 CLEA",210
-        .byte "BIT5 SE",212
-        .byte "BIT5 CLEA",210
-        .byte "BIT6 SE",212
-        .byte "BIT6 CLEA",210
-        .byte "BIT7 SE",212
-        .byte "BIT7 CLEA",210
-        .byte "O",203
+        .byte "SCOR",197
+        .byte "  HIG",200
+        .byte "DODGY GEEZ",197
+        .byte " GAM",197
+        .byte " OVE",210
+        .byte " NEW HIGH SCOR",197
+        .byte " ",160
+        .byte "  ",160
+        .byte "SPRITE DEM",207
+        .byte "HITTING SPRIT",197
+        .byte " GAME",160
+        .byte " OVER",160
+        .byte " NEW HIGH SCORE",160
 nummsg:
-        .byte 18
+        .byte 13
 chgfx:
-        .byte 0,0
+        .byte 255,255
+        .byte 1,1
 bprop:
         .byte 0
+        .byte 2
 sprgfx:
-        .byte 32,32,32,32,32,32,32,32,32,32,32,32
-        .byte 32,32,32,32,32,32,32,32,32,32,32,32
+        .byte 49,168,115,238,55,236,53,168,42,112,125,180
+        .byte 119,32,102,57,110,41,126,32,32,101,122,124
+        .byte 107,254,236,54,238,119,175,243,167,241,45,185
+        .byte 35,125,61,124,57,127,59,103,46,99,58,102
+        .byte 60,60,56,56,44,126,126,32,49,168,115,238
+        .byte 108,108,100,100,40,108,125,53,119,32,102,57
+        .byte 55,236,53,168,42,116,45,190,123,246,108,55
+        .byte 110,41,126,32,37,109,58,108,99,125,57,126
+        .byte 60,60,124,62,254,63,254,63,255,127,63,255
+        .byte 109,108,108,124,109,127,109,127,127,127,127,111
+        .byte 47,252,39,240,47,224,63,240,255,252,254,255
+        .byte 58,109,62,97,58,37,122,101,127,125,124,127
+        .byte 252,127,252,127,120,62,56,60,32,252,96,254
+        .byte 125,126,125,126,100,124,101,108,53,104,52,120
+        .byte 240,254,248,252,252,248,255,240,255,224,255,224
+        .byte 116,120,117,124,120,116,126,117,122,53,122,53
 frmlst:
-        .byte 0,1,1,0
+        .byte 0,4
+        .byte 4,4,8,0
 scdat:
-        .word 9
-        .byte 255,0,0,255,0,0,255,0,148
+        .word 104
+        .byte 255,1,31,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1
+        .byte 255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28
+        .byte 1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28,1,1,255,0,28
+        .byte 255,1,31
 numsc:
         .byte 1
 nmedat:
-        .byte 0,0,88,128,255
+        .byte 0,0,88,128,1,1,44,44,2,1,44,172,255
 NUMOBJ = 1
 objdta:
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,32,0,160,32
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40,80,0,40,80
 font:
         .byte 0,0,0,0,0,0,0,0
         .byte 0,48,48,48,48,0,48,0

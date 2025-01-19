@@ -25,24 +25,28 @@
 
 ; System constants
 
-	ScreenAddr	= $0400	; Startaddress video RAM
-	MAP 		= $D800	; properties map buffer (4x256 bytes)
-	SCADTB_lb 	= $DC00	; screen address table lo-byte (256 bytes)
-	SCADTB_hb 	= $DD00	; screen address table hi-byte (256 bytes)
-	SHRAPN 		= $DE00	; shrapnel table (55x6 bytes)
-	PORT_A		= $0E21	; Keyboard 
+	IRQVEC		= $0204		; Interrupt vector
+	ScreenAddr	= $0400		; Startaddress video RAM
 
-	ScrSelAddr	= $b000	; Screen selection address
-	KeyRowAddr	= $b000	; PIA key matrix row
-	KeyColAddr	= $b001	; PIA key matrix column
-	SpeakerBit	= $b002	; Speaker bit
-	CmdReg		= $b400	; Command register AtoMMC
-	DatReg		= $b401	; Data register AtoMMC 
-	Timer1_Low  	= $0e24	; Timer 1 low byte
-	Timer1_High 	= $0e25	; Timer 1 high byte
-	Timer2_Low	= $0e28	; Timer 2 low byte
-	Timer2_High	= $0e29	; Timer 2 high byte
-	IFR		= $0e2d ; Interrupt Flag Register
+	MC6845_Reg	= $0800		; MC6845 CRT controller register ptr
+	MC6845_Dat	= $0801		; MC6845 CRT controller data
+
+	VIA1		= $0e20
+	PORT_A		= VIA1+$1	; Keyboard 
+	Timer1_Low  	= VIA1+$4	; Timer 1 low byte
+	Timer1_High 	= VIA1+$5	; Timer 1 high byte
+	Timer2_Low	= VIA1+$8	; Timer 2 low byte
+	Timer2_High	= VIA1+$9	; Timer 2 high byte
+	ACR		= VIA1+$b	; Auxiliary Control Register
+	IFR		= VIA1+$d 	; Interrupt Flag Register
+	IER		= VIA1+$e	; Interupt Enable Register
+
+	MAP 		= $D800		; properties map buffer (4x256 bytes)
+	SCADTB_lb 	= $DC00		; screen address table lo-byte (256 bytes)
+	SCADTB_hb 	= $DD00		; screen address table hi-byte (256 bytes)
+	SHRAPN 		= $DE00		; shrapnel table (55x6 bytes)
+	V_SPR_PTR	= $DF4A		; Vertical spriteframe pointer (75 bytes)
+	V_SPR_OFF	= $DF95		; Vertical blockcheck pointer (75 bytes)
 
 ; System calls
 
@@ -64,13 +68,6 @@
 ; To be removed
 
 	SCRSYNC	= $fff4
-	READKEY	= $fff4
-	red    = 1
-	blue   = 2
-	yellow = 3
-	green  = 4
-keymask:
-	.byte 0
 
 ;======================================================================
 ; System depending routines
@@ -82,26 +79,104 @@ keymask:
 
 init:
 
-; Set timer at 50 Hz
-;	lda #$e0		; T1 continuous
-;	sta $0e2b
-;	lda #$7f		; No int
-;	sta $0e2e
-;	lda #0
-;	sta $0e2d		; Clear interrupt flags
-;	lda #<50000
-;	sta Timer1_Low
-;	lda #>50000
-;	sta Timer1_High
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; Hack for MAME to use VDU40x25
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Init VDU40x25
+
+	ldy #$f
+loops:
+	sty MC6845_Reg
+	lda CRTTAB,y
+	sta MC6845_Dat
+	dey
+	bpl loops
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ; Disable cursor
+
 	lda #$0a
-	sta $0800
+	sta MC6845_Reg
 	lda #$20
-	sta $801
+	sta MC6845_Dat
 
 	jsr cls
+
+; Set new interrupt routine to sync at 25Hz
+
+	lda #<irq_handler	; New interrupt handler	
+	sta IRQVEC
+	lda #>irq_handler
+	sta IRQVEC+1
+
+	lda #<30000		; Interrupt at 50Hz
+	sta Timer1_Low
+	lda #>30000
+	sta Timer1_High
+	lda #%01000000
+	sta ACR
+	lda #%11000000
+	sta IER
+	cli
+
+; Set up vertical sprite pointer table
+
+	ldx #0
+	stx tmp
+	ldy #0
+	lda #0
+vspriteloop:
+	lda tmp
+	sta V_SPR_PTR,y
+	txa
+	sta V_SPR_OFF,y
+	clc
+	lda tmp
+	adc #20
+	sta tmp
+	cmp #60
+	bne :+
+	lda #0
+	sta tmp
+:
+	inx
+	cpx #3
+	bne :+
+	ldx #0
+:
+	iny
+	cpy #75
+	bne vspriteloop	
+
 	rts
+
+irq_handler:
+	lda Timer1_Low		; Reset irqflag
+
+	txa			; Save x,y
+	pha
+	tya
+	pha
+
+	inc frames_passed	; Nr of frames past
+
+	pla			; Restore x,y,a
+	tay
+	pla
+	tax
+	pla
+	rti
+
+frames_passed:	.byte 0
+
+	rts
+
+CRTTAB:	.byte $3f,$28,$33,$44
+	.byte $1e,$02,$19,$1b
+	.byte $03,$12,$72,$13
+	.byte $04,$00,$07,$ff
 
 ;======================================================================
 ; Screen routines
@@ -115,6 +190,9 @@ init:
 ;----------------------------------------------------------------------
 
 cls:
+
+; Fill screen with 0
+
 	lda #0
 	ldy #0
 clsloop:
@@ -124,6 +202,8 @@ clsloop:
 	sta ScreenAddr+768,y
 	iny
 	bne clsloop
+
+; Init every row as graphics
 
 	ldy #0
 	ldx #ScrHeight
@@ -145,6 +225,7 @@ colloop:
 	pla
 	dex
 	bne colloop
+
 	rts
 
 ;-------------------------------------------------------------
@@ -163,29 +244,37 @@ vsync:
 	txa
 	pha
 	jsr joykey		; read joystick/keyboard.
+
+; Sync framerate to 25 Hz
+
 vsync1:
-;	bit IFR			; Check Interrupt Flag Register
-;	beq vsync1
-;	lda Timer1_Low		; Clear Timer interrupt
+	lda frames_passed	; Wait if not at 25Hz
+	cmp #2
+	bcc vsync1
+
+	lda #0			; sync framerate 25 Hz
+	sta frames_passed
+
 
 	lda clock
 	and #1
 	bne:+
 	jsr proshr		; handle shrapnel every even frame
 :
-	lda sndtyp
-	beq sndskip
-sndloop:
-	lda SpeakerBit		; handle sound
-	ldy sndtyp
-sndwait:
-	dey
-	bne sndwait
-	eor #4
-	sta SpeakerBit
-	dec sndtyp
-	bne sndloop
-sndskip: 
+;	lda sndtyp
+;	beq sndskip
+;sndloop:
+;	lda SpeakerBit		; handle sound
+;	ldy sndtyp
+;sndwait:
+;	dey
+;	bne sndwait
+;	eor #4
+;	sta SpeakerBit
+;	dec sndtyp
+;	bne sndloop
+;sndskip: 
+
 	pla
 	tax
 	pla
@@ -219,16 +308,17 @@ joy2:
 
 ktest:
 	sta tmp
-	bit PORT_A
-	bmi not_pressed
+	lda PORT_A
+;	bit PORT_A
+	bmi not_pressed	; BUG MAME, bit 7 not set ....
 	lda PORT_A
 	cmp tmp
-	bne not_pressed
-pressed:
-	clc
-	rts
+	beq pressed
 not_pressed:
 	sec
+	rts
+pressed:
+	clc
 	rts
 
 ;======================================================================
@@ -238,9 +328,9 @@ not_pressed:
 
 prskey:
 	bit PORT_A
-	bmi prskey
+	bpl prskey
 relkey:
 	bit PORT_A
-	bpl relkey
+	bmi relkey
 	rts
 

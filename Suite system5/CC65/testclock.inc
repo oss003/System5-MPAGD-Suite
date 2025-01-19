@@ -123,6 +123,7 @@
 
 .segment "CODE"
 
+
 ; Clear zp variables
 
 	lda #0
@@ -347,6 +348,10 @@ mod0:
 	sta dispx		; set left display position.
 	lda bwid		; box width.
 	sta z80_b		; store width.
+
+	lda fcolour		; Set textcolour
+	jsr pchar
+	jsr nexpos
 dbox0:
 	ldy #0
 	lda (z80_hl),y		; get character.
@@ -375,6 +380,7 @@ dbox0:
 	lda z80_a
 	cmp #128		; end of message?
 	bmi :+
+	jsr dscor2
 	jmp dbox7		; yes, job done.
 :
 	lda z80_b		; chars remaining.
@@ -523,23 +529,29 @@ dbar:
 	sta dispx		; set display coordinate.
 	jsr gprad		; get printing address.
 
-	lda bwid		; box width.
-	sta z80_c		; loop counter in c.
-	lda z80_h		
-	sta z80_d		; store screen address high byte.
-dbar1:
-	ldx #7			; pixel height in b.
-dbar0:
-	ldy scrtab,x
-	lda (scraddr),y		; get screen byte.
-	eor #255		; reverse all bits.
-	sta (scraddr),y		; write back to screen.
-	dex			; next line down.
-	bpl dbar0		; draw rest of character.
+;	lda bwid		; box width.
+;	sta z80_c		; loop counter in c.
+;	lda z80_h		
+;	sta z80_d		; store screen address high byte.
+;dbar1:
+;	ldx #7			; pixel height in b.
+;dbar0:
+;	ldy scrtab,x
+;	lda (scraddr),y		; get screen byte.
+;	eor #255		; reverse all bits.
+;	sta (scraddr),y		; write back to screen.
+;	dex			; next line down.
+;	bpl dbar0		; draw rest of character.
 
-	inc scraddr		; one char right.
-	dec z80_c		; decrement character counter.
-	bne dbar1		; repeat for whole line.
+;	inc scraddr		; one char right.
+;	dec z80_c		; decrement character counter.
+;	bne dbar1		; repeat for whole line.
+
+	ldy #0
+	lda (scraddr),y
+	eor #7
+	sta (scraddr),y
+
 	rts
 
 ;------------------------------------------------------
@@ -1754,6 +1766,7 @@ setsa0:
 
 	jsr init 		; Init hardware
 
+
 ; Init joystick
 
 	jsr joyinit		; Init joystick
@@ -1967,10 +1980,6 @@ rbloc0:
 ; New level
 ;----------------------------------------------------------
 
-;.repeat 270
-;  .byte 0
-;.endrep
-
 newlev:
 	lda scno 			; current screen.
 	clc
@@ -1988,10 +1997,6 @@ evwon:
 ; Player dead.
 ;----------------------------------------------------------
 
-;.repeat 258
-;  .byte 0
-;.endrep
-
 pdead:
 	lda #0				; zeroise accumulator.
 	sta deadf			; reset dead flag.
@@ -2008,10 +2013,6 @@ evfail:
 ;----------------------------------------------------------
 ; Tidy things up
 ;----------------------------------------------------------
-
-;.repeat 291
-;  .byte 0
-;.endrep
 
 tidyup:
 	ldy #0				; digits to check.
@@ -2483,10 +2484,6 @@ skobj2:
   offset = 20
 .endif
 
-;.repeat 343
-;  .byte 0
-;.endrep
-
 spawn:
 	lda #<sprtab		; sprite table.
 	sta z80_l
@@ -2630,10 +2627,6 @@ dhisc:
 ;------------------------------------------------------
 ; Displays the current score.
 ;------------------------------------------------------
-
-;.repeat 322
-;  .byte 0
-;.endrep
 
 dscor:
 	lda #<score		; score text.
@@ -2883,31 +2876,23 @@ gprad:
 ; Get property buffer address of char at (dispx, dispy) in hl.
 ; 
 ; Output:
-;  bufaddr = MAP + dispy*32 + dispx
+;  bufaddr = MAP + dispy*40 + dispx
 ;--------------------------------------------------------------
 
 pradd:
 	lda dispy 		; y coordinate.
-	sta bufaddr
-	lda #0
-	sta bufaddr+1
-	asl bufaddr  		; multiply char by 32
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	clc			; add address of MAP graphics.
-	lda bufaddr
+	asl a
+	clc
+	adc dispy
+	tax
+
+	clc
+	lda SCADTB_lb,x
 	adc dispx
-	adc #<MAP
 	sta bufaddr
-	lda bufaddr+1
-	adc #>MAP
+
+	lda SCADTB_hb,x
+	adc #(>MAP->ScreenAddr)
 	sta bufaddr+1
 	rts
 
@@ -2943,10 +2928,6 @@ scrtab:		.byte $e0,$c0,$a0,$80,$60,$40,$20,$00
 ;  A	= tile number
 ;----------------------------------------------
 
-;.repeat 294
-;  .byte 0
-;.endrep
-
 pbpattr:			; entry PUTBLOCK command
 	ldy charx
 	sty dispx
@@ -2976,10 +2957,6 @@ pattr2:
 	lda z80_b 		; restore cell.
 	jmp panp
 ; Print attributes, no properties.
-
-;.repeat 263
-; .byte 0
-;.endrep
 
 colpatt:	.byte 0
 
@@ -3145,10 +3122,6 @@ spr:	.byte 0,0,0
 ;-----------------------------------------------------------
 ; Get room address.
 ;-----------------------------------------------------------
-
-;.repeat 273
-;  .byte 0
-;.endrep
 
 groom:
 	ldx scno 		; screen number.
@@ -3344,7 +3317,7 @@ cangu:
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
 	sec
-	sbc #2
+	sbc #1
 	sta dispy		; coords in dispx,dispy.
 	jsr tstbl 		; get map address.
 	jsr lrchk 		; standard left/right check.
@@ -3359,8 +3332,24 @@ cangu:
 	beq :+
 	rts			; impassable.
 :
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr lrchk 		; do the check.
+	beq :+
+	rts			; impassable.
+:
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr lrchk 		; do the check.
+	beq :+
+	rts			; impassable.
+:
 	lda dispx		; x coordinate.
-	and #7			; position straddling block cells.
+	and #1			; position straddling block cells.
 	bne :+
 	rts			; no more checks needed.
 :
@@ -3380,10 +3369,6 @@ cangu:
 ; Output:
 ;  A  = 0 is ok, A <>0 is not ok
 ;---------------------------------------------------------
-
-;.repeat 264
-;  .byte 0
-;.endrep
 
 cangd:
 	ldy #9
@@ -3408,8 +3393,24 @@ numsp3:
 	beq :+
 	rts			; impassable.
 :
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr plchk		; block, platform check.
+	beq :+
+	rts			; impassable.
+:
+	inc bufaddr		; look right one cell.
+	bne :+
+	inc bufaddr+1
+:
+	jsr plchk		; block, platform check.
+	beq :+
+	rts			; impassable.
+:
 	lda dispx		; x coordinate.
-	and #7			; position straddling block cells.
+	and #1			; position straddling block cells.
 	bne :+
 	rts			; no more checks needed.
 :
@@ -3437,7 +3438,7 @@ cangl:
 	ldy #9
 	lda (z80_ix),y 		; x coordinate.
 	sec
-	sbc #2			; look left 2 pixels.
+	sbc #1			; look left 2 pixels.
 	sta dispx		; coords in dispx,dispy.
 	jmp cangh		; test if we can go there.
 
@@ -3451,10 +3452,6 @@ cangl:
 ;  A  = 0 is ok, A <>0 is not ok
 ;---------------------------------------------------------
 
-.repeat 272
-  .byte 0
-.endrep
-
 cangr:
 	ldy #8
 	lda (z80_ix),y		; y coordinate.
@@ -3462,14 +3459,14 @@ cangr:
 	ldy #9
 	lda (z80_ix),y		; x coordinate.
 	clc
-	adc #16			; look right 16 pixels.
+	adc #SPR_WID		; look right 8 pixels.
 	sta dispx		; coords in dispx,dispy.
 cangh:
 cangh2:
-	lda #(SPR_HGT/8+1)	; default rows to write.
+	lda #(SPR_HGT/4+1)	; default rows to write.
 	sta z80_b
 	lda dispy		; y position.
-	and #7			; does x straddle cells?
+	and #3			; does x straddle cells?
 	bne cangh0		; yes, loop counter is good.
 	dec z80_b		; one less row to write.
 cangh0:
@@ -3482,7 +3479,7 @@ cangh1:
 	pha
 	clc
 	lda bufaddr
-	adc #32			; look down.
+	adc #ScrWidth		; look down.
 	sta bufaddr
 	bcc :+
 	inc bufaddr+1
@@ -3531,7 +3528,7 @@ lrchkx:
 ; Check platform or solid item is not in way.
 ;
 ; Input:
-;  bufaddr = MAP + x/8 + y/8*32
+;  bufaddr = MAP + x/2 + y/3*40
 ;
 ; Output:
 ;  A  = 0 is ok, A <>0 is not ok
@@ -3556,8 +3553,8 @@ plchk0:
 	lda #0			; report as ok
 	rts
 plchkx:
-	lda dispy		; x coordinate.
-	and #7			; position straddling blocks.
+	lda dispy		; y coordinate.
+	and #3			; position straddling blocks.
 	beq lrchkx		; on platform, deny movement.
 	jmp plchk0
 
@@ -3681,7 +3678,7 @@ tded:
 	sta dispx		; coords in dispx,dispy.
 	jsr tstbl		; get map address.
 	pha
-	lda #31			; default distance to next line down.
+	lda #ScrWidth-1		; default distance to next line down.
 	sta z80_e
 	pla
 	cmp z80_b		; is this the required block?
@@ -3700,7 +3697,7 @@ tded:
 :
 	lda dispx		; horizontal position.
 	sta z80_c 		; store column in c register.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	jmp tded0		; no.
 :
@@ -3740,7 +3737,7 @@ tded0:
 	rts			; yes.
 :
 	lda z80_c		; horizontal position.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	jmp tded1 		; no.
 :
@@ -3756,7 +3753,7 @@ tded0:
 :
 tded1:
 	lda dispy		; vertical position.
-	and #7 			; is it straddling cells?
+	and #3 			; is it straddling cells?
 	bne :+
 	rts			; no, job done.
 :
@@ -3784,7 +3781,7 @@ tded1:
 	rts			; yes.
 :
 	lda z80_c		; horizontal position.
-	and #7			; is it straddling cells?
+	and #1			; is it straddling cells?
 	bne :+
 	rts			; no.
 :
@@ -3805,44 +3802,24 @@ tded1:
 
 tstbl:
 	lda dispy 		; fetch y coord.
-	lsr a			; bufaddr = y/8
-	lsr a
-	lsr a
-	sta chary
-
-	sta bufaddr
-	lda #0
-	sta bufaddr+1
-
-	asl bufaddr  		; bufaddr = y/8 * 32
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
+	tax
 
 	lda dispx		; x/8
 	lsr a
-	lsr a
-	lsr a
 	sta charx
 
-	clc			; bufaddr = MAP + x/8 + y/8*32
-	adc bufaddr
-	adc #<MAP
+	clc
+	lda SCADTB_lb,x
+	adc charx
 	sta bufaddr
-	lda bufaddr+1
-	adc #>MAP
-	sta bufaddr+1
 
+	lda SCADTB_hb,x
+	adc #(>MAP->ScreenAddr)
+	sta bufaddr+1
+	
 	ldy #0
 	lda (bufaddr),y 	; fetch byte there.
 	rts
-
 
 ;-------------------------------------------------------------------
 ; Jump - if we can.
@@ -3974,43 +3951,43 @@ joyke0:
 ;  A = high nibble=row and low nibble=column key in matrix
 ;---------------------------------------------------------------
 
-kget:
-	lda #ScrMode		; high-mono mode.
-	sta ScrSelAddr		; screen select port
-	stx xtmp
-kget4:
-	jsr READKEY		; read key until pressed
-	cpy #255
-	beq kget4
-	sta rcol		; save column
-	stx rrow		; determine row
-kget3:
-	jsr READKEY		; wait until key released
-	cpy #255
-	bne kget3
-
-	sec			; calculate matrix row
-	lda #10
-	sbc rrow
-	asl a
-	asl a
-	asl a
-	asl a
-	sta rrow
-
-	ldy #255		; find column mask
-kget1:
-	iny
-	lda keymask,y
-	cmp rcol
-	beq kget2
-	jmp kget1
-kget2:
-	tya			; determine column
-	clc
-	adc rrow
-	ldx xtmp
-	rts
+;kget:
+;	lda #ScrMode		; high-mono mode.
+;	sta ScrSelAddr		; screen select port
+;	stx xtmp
+;kget4:
+;	jsr READKEY		; read key until pressed
+;	cpy #255
+;	beq kget4
+;	sta rcol		; save column
+;	stx rrow		; determine row
+;kget3:
+;	jsr READKEY		; wait until key released
+;	cpy #255
+;	bne kget3
+;
+;	sec			; calculate matrix row
+;	lda #10
+;	sbc rrow
+;	asl a
+;	asl a
+;	asl a
+;	asl a
+;	sta rrow
+;
+;	ldy #255		; find column mask
+;kget1:
+;	iny
+;	lda keymask,y
+;	cmp rcol
+;	beq kget2
+;	jmp kget1
+;kget2:
+;	tya			; determine column
+;	clc
+;	adc rrow
+;	ldx xtmp
+;	rts
 
 ;---------------------------------------------------------------
 ; Display message.
@@ -4510,7 +4487,7 @@ dspr4:
 	lda (z80_ix),y 		; old frame.
 	ldy #7
 	cmp (z80_ix),y 		; compare against new value.
-	jmp dspr7 		; they differ, need to redraw.
+	bne dspr7 		; they differ, need to redraw.
 
 	ldy #1
 	lda (z80_ix),y 		; old image.
@@ -4833,8 +4810,8 @@ dline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_b		; mask right
-	ora #$20		; Set bit 5
 	eor (scraddr),y		; merge with screenright
+	ora #$20		; Set bit 5
 	sta (scraddr),y		; write screenright
 
 	rts
@@ -4849,7 +4826,6 @@ ddline1:
 
 	lda z80_a
 	and z80_cp		; mask left
-	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenleft
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata0
@@ -4879,7 +4855,6 @@ ddline2c:
 
 	lda z80_a		; fetch spriteright byte
 	and z80_bp		; mask right
-	ora #$20		; Set bit 5
 	eor (z80_hlp),y		; merge with screenright
 	ora #$20		; Set bit 5
 	sta (z80_hlp),y		; write spritedata5
@@ -4905,17 +4880,6 @@ nline:
 	inc scraddr+1 		; new high byte of address.
 :
 	rts
-
-;-------------------------------------------------------------
-; Line drawn, now work out next target address.
-;
-; Input:
-;  BP  = right mask
-;  CP  = left mask
-;  DEP = spriteaddress
-;  z80_hlp = screen address
-;-------------------------------------------------------------
-
 
 ;-----------------------------------------------------------
 ; Animates a sprite.

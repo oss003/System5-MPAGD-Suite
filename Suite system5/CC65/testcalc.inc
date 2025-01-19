@@ -6096,299 +6096,402 @@ evnt08:
 evnt09:
         rts
 evnt10:
-        lda #170
-        sta vara
-        lda #0		; AT
+        lda #1		; AT
         sta chary
         lda #1
         sta charx
-        lda #1		; PRINTMODE
-        sta prtmod
         lda #0		; PRINT
         jsr dmsg
-        lda vara	; DISPLAY
-        jsr disply
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda vara
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
         lda #3		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00189
         lda #1		; PRINT
         jsr dmsg
-        jmp k00199
-k00189: lda #2		; PRINT
-        jsr dmsg
-k00199: lda vara
-        sta vari
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #4		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00327
-        lda #3		; PRINT
-        jsr dmsg
-        jmp k00337
-k00327: lda #4		; PRINT
-        jsr dmsg
-k00337: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
         lda #5		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00468
-        lda #5		; PRINT
+        lda #2		; PRINT
         jsr dmsg
-        jmp k00478
-k00468: lda #6		; PRINT
-        jsr dmsg
-k00478: lda vara
-        sta vari
-        lda vari
+        lda #123
+        sta varl
+        lda varl
         lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
         lda #6		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00613
-        lda #7		; PRINT
+        lda #3		; PRINT
         jsr dmsg
-        jmp k00623
-k00613: lda #8		; PRINT
-        jsr dmsg
-k00623: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
+        lda #123
+        sta varl
+        lda varl
+        sta z80_d
+        lda #3
+        sta z80_e
+        jsr idiv
+        lda z80_d
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
         lda #7		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00761
-        lda #9		; PRINT
+        lda #4		; PRINT
         jsr dmsg
-        jmp k00771
-k00761: lda #10		; PRINT
-        jsr dmsg
-k00771: lda vara
-        sta vari
-        lda vari
+        lda #123
+        sta varl
+        lda varl
         lsr a
         lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
         lda #8		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00913
-        lda #11		; PRINT
+        lda #5		; PRINT
         jsr dmsg
-        jmp k00924
-k00913: lda #12		; PRINT
-        jsr dmsg
-k00924: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
+        lda #123
+        sta varl
+        lda varl
+        sta z80_d
+        lda #5
+        sta z80_e
+        jsr idiv
+        lda z80_d
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
         lda #9		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01069
-        lda #13		; PRINT
+        lda #6		; PRINT
         jsr dmsg
-        jmp k01079
-k01069: lda #14		; PRINT
-        jsr dmsg
-k01079: lda vara
-        sta vari
-        lda vari
-        asl a
-        rol a
-        and #1
-        sta vari
-        lda vari
-        sta varj
-        lda vari
+        lda #123
+        sta varl
+        lda varl
         lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
         lda #10		; AT
         sta chary
-        lda #0
+        lda #1
         sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01215
+        lda #7		; PRINT
+        jsr dmsg
+        lda #123
+        sta varl
+        lda varl
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #5		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #8		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        asl a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #6		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #9		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        sta z80_d
+        asl a
+        clc
+        adc z80_d
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #7		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #10		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        asl a
+        asl a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #8		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #11		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        sta z80_d
+        asl a
+        asl a
+        clc
+        adc z80_d
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #9		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #12		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        asl a
+        asl a
+        asl a
+        asl a
+        asl a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #10		; AT
+        sta chary
+        lda #18
+        sta charx
+        lda #13		; PRINT
+        jsr dmsg
+        lda #3
+        sta varl
+        lda varl
+        asl a
+        asl a
+        asl a
+        asl a
+        asl a
+        asl a
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #12		; AT
+        sta chary
+        lda #1
+        sta charx
+        lda #14		; PRINT
+        jsr dmsg
+        lda #14		; AT
+        sta chary
+        lda #1
+        sta charx
         lda #15		; PRINT
         jsr dmsg
-        jmp k01225
-k01215: lda #16		; PRINT
-        jsr dmsg
-k01225: lda #11		; AT
+        lda #12
+        sta varl
+        lda varl
+        clc
+        adc #1
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #15		; AT
         sta chary
-        lda #0
+        lda #1
+        sta charx
+        lda #16		; PRINT
+        jsr dmsg
+        lda #12
+        sta varl
+        lda #31
+        sta z80_c
+        lda varl
+        clc
+        adc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #16		; AT
+        sta chary
+        lda #1
         sta charx
         lda #17		; PRINT
         jsr dmsg
+        lda #12
+        sta varl
+        lda #62
+        sta z80_c
+        lda varl
+        clc
+        adc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #17		; AT
+        sta chary
         lda #1
-        sta varb
-        lda varb	; DISPLAY
+        sta charx
+        lda #18		; PRINT
+        jsr dmsg
+        lda #12
+        sta varl
+        lda #94
+        sta z80_c
+        lda varl
+        clc
+        adc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #18		; AT
+        sta chary
+        lda #1
+        sta charx
+        lda #19		; PRINT
+        jsr dmsg
+        lda #12
+        sta varl
+        lda #128
+        sta z80_c
+        lda varl
+        clc
+        adc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #19		; AT
+        sta chary
+        lda #1
+        sta charx
+        lda #20		; PRINT
+        jsr dmsg
+        lda #12
+        sta varl
+        lda #199
+        sta z80_c
+        lda varl
+        clc
+        adc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #14		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #21		; PRINT
+        jsr dmsg
+        lda #13
+        sta varl
+        lda varl
+        sec
+        sbc #1
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #15		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #22		; PRINT
+        jsr dmsg
+        lda #43
+        sta varl
+        lda #31
+        sta z80_c
+        lda varl
+        sec
+        sbc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #16		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #23		; PRINT
+        jsr dmsg
+        lda #74
+        sta varl
+        lda #62
+        sta z80_c
+        lda varl
+        sec
+        sbc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #17		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #24		; PRINT
+        jsr dmsg
+        lda #106
+        sta varl
+        lda #94
+        sta z80_c
+        lda varl
+        sec
+        sbc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #18		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #25		; PRINT
+        jsr dmsg
+        lda #140
+        sta varl
+        lda #128
+        sta z80_c
+        lda varl
+        sec
+        sbc z80_c
+        sta varl
+        lda varl	; DISPLAY
+        jsr disply
+        lda #19		; AT
+        sta chary
+        lda #16
+        sta charx
+        lda #26		; PRINT
+        jsr dmsg
+        lda #211
+        sta varl
+        lda #199
+        sta z80_c
+        lda varl
+        sec
+        sbc z80_c
+        sta varl
+        lda varl	; DISPLAY
         jsr disply
         jsr prskey	; WAITKEY
         rts
@@ -6415,26 +6518,35 @@ evnt20:
         rts
 ptcusr: rts
 msgdat:
-        .byte "BIT TEST:",160
-        .byte "BIT0 SE",212
-        .byte "BIT0 CLEA",210
-        .byte "BIT1 SE",212
-        .byte "BIT1 CLEA",210
-        .byte "BIT2 SE",212
-        .byte "BIT2 CLEA",210
-        .byte "BIT3 SE",212
-        .byte "BIT3 CLEA",210
-        .byte "BIT4 SE",212
-        .byte "BIT4 CLEA",210
-        .byte "BIT5 SE",212
-        .byte "BIT5 CLEA",210
-        .byte "BIT6 SE",212
-        .byte "BIT6 CLEA",210
-        .byte "BIT7 SE",212
-        .byte "BIT7 CLEA",210
-        .byte "O",203
+        .byte "CALCULATIONS TEST",186
+        .byte "DIVISION:      MULTIPLICATION",186
+        .byte "123 /  2 =",160
+        .byte "123 /  3 =",160
+        .byte "123 /  4 =",160
+        .byte "123 /  5 =",160
+        .byte "123 / 32 =",160
+        .byte "123 / 64 =",160
+        .byte "3 x  2 =",160
+        .byte "3 x  3 =",160
+        .byte "3 x  4 =",160
+        .byte "3 x  5 =",160
+        .byte "3 x 32 =",160
+        .byte "3 x 64 =",160
+        .byte "ADDITION:      SUBTRACTION",186
+        .byte "12 +   1 =",160
+        .byte "12 +  31 =",160
+        .byte "12 +  62 =",160
+        .byte "12 +  94 =",160
+        .byte "12 + 128 =",160
+        .byte "12 + 199 =",160
+        .byte " 13 -   1 =",160
+        .byte " 43 -  31 =",160
+        .byte " 74 -  62 =",160
+        .byte "106 -  94 =",160
+        .byte "140 - 128 =",160
+        .byte "211 - 199 =",160
 nummsg:
-        .byte 18
+        .byte 27
 chgfx:
         .byte 0,0
 bprop:

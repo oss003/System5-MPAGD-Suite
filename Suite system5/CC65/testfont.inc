@@ -6096,307 +6096,37 @@ evnt08:
 evnt09:
         rts
 evnt10:
-        lda #170
-        sta vara
-        lda #0		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #1		; PRINTMODE
-        sta prtmod
-        lda #0		; PRINT
-        jsr dmsg
-        lda vara	; DISPLAY
-        jsr disply
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda vara
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #3		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00189
-        lda #1		; PRINT
-        jsr dmsg
-        jmp k00199
-k00189: lda #2		; PRINT
-        jsr dmsg
-k00199: lda vara
-        sta vari
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #4		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00327
-        lda #3		; PRINT
-        jsr dmsg
-        jmp k00337
-k00327: lda #4		; PRINT
-        jsr dmsg
-k00337: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #5		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00468
-        lda #5		; PRINT
-        jsr dmsg
-        jmp k00478
-k00468: lda #6		; PRINT
-        jsr dmsg
-k00478: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #6		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00613
-        lda #7		; PRINT
-        jsr dmsg
-        jmp k00623
-k00613: lda #8		; PRINT
-        jsr dmsg
-k00623: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #7		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00761
-        lda #9		; PRINT
-        jsr dmsg
-        jmp k00771
-k00761: lda #10		; PRINT
-        jsr dmsg
-k00771: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #8		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k00913
-        lda #11		; PRINT
-        jsr dmsg
-        jmp k00924
-k00913: lda #12		; PRINT
-        jsr dmsg
-k00924: lda vara
-        sta vari
-        lda vari
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        lsr a
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #9		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01069
-        lda #13		; PRINT
-        jsr dmsg
-        jmp k01079
-k01069: lda #14		; PRINT
-        jsr dmsg
-k01079: lda vara
-        sta vari
-        lda vari
-        asl a
-        rol a
-        and #1
-        sta vari
-        lda vari
-        sta varj
-        lda vari
-        lsr a
-        sta vari
-        lda vari
-        asl a
-        sta vari
-        lda vari
-        sta z80_c
-        lda varj
-        sec
-        sbc z80_c
-        sta varj
-        lda #10		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #0
-        cmp varj
-        bcc *+5
-        jmp k01215
-        lda #15		; PRINT
-        jsr dmsg
-        jmp k01225
-k01215: lda #16		; PRINT
-        jsr dmsg
-k01225: lda #11		; AT
-        sta chary
-        lda #0
-        sta charx
-        lda #17		; PRINT
-        jsr dmsg
-        lda #1
-        sta varb
-        lda varb	; DISPLAY
-        jsr disply
-        jsr prskey	; WAITKEY
         rts
 evnt11:
         rts
 evnt12:
         jsr cls		; CLS
-        rts
+        lda #2 	; INK
+        jsr setfgcol
+        lda #0		; AT
+        sta chary
+        lda #0
+        sta charx
+        lda #32
+        sta vara
+        lda #96 	; REPEAT
+        sta loopa
+m00055: lda vara		; CHR
+        jsr achar
+        lda vara
+        clc
+        adc #1
+        sta vara
+        dec loopa	; ENDREPEAT
+        beq :+
+        jmp m00055
+:
+m00098: lda #0
+        cmp vara
+        bcc *+5
+        jmp m00119
+        jmp m00098
+m00119: rts
 evnt13:
         rts
 evnt14:
@@ -6415,26 +6145,8 @@ evnt20:
         rts
 ptcusr: rts
 msgdat:
-        .byte "BIT TEST:",160
-        .byte "BIT0 SE",212
-        .byte "BIT0 CLEA",210
-        .byte "BIT1 SE",212
-        .byte "BIT1 CLEA",210
-        .byte "BIT2 SE",212
-        .byte "BIT2 CLEA",210
-        .byte "BIT3 SE",212
-        .byte "BIT3 CLEA",210
-        .byte "BIT4 SE",212
-        .byte "BIT4 CLEA",210
-        .byte "BIT5 SE",212
-        .byte "BIT5 CLEA",210
-        .byte "BIT6 SE",212
-        .byte "BIT6 CLEA",210
-        .byte "BIT7 SE",212
-        .byte "BIT7 CLEA",210
-        .byte "O",203
 nummsg:
-        .byte 18
+        .byte 0
 chgfx:
         .byte 0,0
 bprop:
@@ -6450,107 +6162,107 @@ scdat:
 numsc:
         .byte 1
 nmedat:
-        .byte 0,0,88,128,255
+        .byte 66,0,88,128,255
 NUMOBJ = 1
 objdta:
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,32,0,160,32
 font:
         .byte 0,0,0,0,0,0,0,0
-        .byte 0,48,48,48,48,0,48,0
-        .byte 0,108,108,0,0,0,0,0
-        .byte 0,108,254,108,108,254,108,0
-        .byte 0,24,126,120,126,30,126,24
-        .byte 0,230,236,24,48,110,206,0
-        .byte 0,48,120,48,126,204,126,0
-        .byte 0,24,48,0,0,0,0,0
-        .byte 0,12,24,24,24,24,12,0
-        .byte 0,96,48,48,48,48,96,0
-        .byte 0,0,60,24,126,24,60,0
-        .byte 0,0,24,24,126,24,24,0
-        .byte 0,0,0,0,0,24,24,48
-        .byte 0,0,0,0,126,0,0,0
-        .byte 0,0,0,0,0,56,56,0
-        .byte 0,0,6,12,24,48,96,0
-        .byte 0,124,206,222,246,230,124,0
-        .byte 0,56,120,24,24,24,126,0
-        .byte 0,124,198,6,124,192,254,0
-        .byte 0,124,198,28,6,198,124,0
-        .byte 0,24,56,120,216,254,24,0
-        .byte 0,254,192,252,6,198,124,0
-        .byte 0,124,192,252,198,198,124,0
-        .byte 0,254,6,12,24,48,48,0
-        .byte 0,124,198,124,198,198,124,0
-        .byte 0,124,198,198,126,6,124,0
+        .byte 0,48,48,48,48,48,0,48
+        .byte 0,48,12,12,51,48,192,192
+        .byte 12,60,63,243,255,243,243,60
+        .byte 0,204,252,252,60,204,12,240
+        .byte 3,3,15,195,255,195,255,195
+        .byte 60,255,60,60,255,60,0,60
+        .byte 60,207,255,252,243,204,243,60
+        .byte 0,12,48,48,48,48,12,0
+        .byte 0,48,12,12,12,12,48,0
+        .byte 60,60,255,243,252,243,60,60
+        .byte 48,60,252,255,195,243,195,252
+        .byte 0,0,0,0,0,12,12,48
+        .byte 0,0,0,0,60,0,0,0
+        .byte 0,0,0,0,0,0,48,0
+        .byte 12,60,63,255,195,207,195,63
+        .byte 48,252,204,204,204,252,48,0
+        .byte 48,240,240,48,48,252,252,0
+        .byte 240,252,12,48,192,252,252,0
+        .byte 240,252,12,48,12,252,240,0
+        .byte 204,204,204,252,12,12,12,0
+        .byte 60,252,192,240,12,252,240,0
+        .byte 60,252,192,252,204,252,48,0
+        .byte 240,252,12,12,48,192,192,0
+        .byte 48,252,204,48,204,252,48,0
+        .byte 60,252,204,252,60,12,12,0
         .byte 0,0,0,48,0,0,48,0
-        .byte 0,0,48,0,0,48,48,96
-        .byte 0,0,12,24,48,24,12,0
-        .byte 0,0,0,126,0,126,0,0
-        .byte 0,0,48,24,12,24,48,0
-        .byte 0,124,198,12,24,0,24,0
-        .byte 0,124,222,254,254,192,124,0
-        .byte 0,124,198,198,254,198,198,0
-        .byte 0,252,198,252,198,198,252,0
-        .byte 0,124,198,192,192,198,124,0
-        .byte 0,248,204,198,198,204,248,0
-        .byte 0,254,192,252,192,192,254,0
-        .byte 0,254,192,252,192,192,192,0
-        .byte 0,124,198,192,222,198,124,0
-        .byte 0,198,198,254,198,198,198,0
-        .byte 0,126,24,24,24,24,126,0
-        .byte 0,6,6,6,198,198,124,0
-        .byte 0,204,216,240,216,204,198,0
-        .byte 0,192,192,192,192,192,254,0
-        .byte 0,198,238,254,198,198,198,0
-        .byte 0,198,230,246,222,206,198,0
-        .byte 0,124,198,198,198,198,124,0
-        .byte 0,252,198,198,252,192,192,0
-        .byte 0,124,198,198,246,222,124,0
-        .byte 0,252,198,198,252,204,198,0
-        .byte 0,124,192,124,6,198,124,0
-        .byte 0,254,48,48,48,48,48,0
-        .byte 0,198,198,198,198,198,124,0
-        .byte 0,198,198,198,198,108,56,0
-        .byte 0,198,198,198,198,254,108,0
-        .byte 0,198,108,56,56,108,198,0
-        .byte 0,134,204,120,48,48,48,0
-        .byte 0,254,12,24,48,96,254,0
-        .byte 0,30,24,24,24,24,30,0
-        .byte 0,0,192,96,48,24,12,0
+        .byte 0,0,0,0,0,0,0,0
+        .byte 240,252,255,255,255,195,195,255
+        .byte 0,0,0,0,0,0,0,0
+        .byte 0,60,0,60,60,255,195,60
+        .byte 60,15,15,15,15,15,15,60
+        .byte 0,63,207,63,207,63,207,63
+        .byte 48,252,12,252,252,204,204,0
+        .byte 240,252,12,240,204,252,240,0
+        .byte 60,252,0,192,192,252,60,0
+        .byte 240,252,12,204,204,252,240,0
+        .byte 60,252,0,240,192,252,60,0
+        .byte 60,252,0,240,192,192,192,0
+        .byte 60,252,0,204,204,252,60,0
+        .byte 204,204,12,252,204,204,204,0
+        .byte 252,252,0,48,48,252,252,0
+        .byte 12,12,0,12,12,252,240,0
+        .byte 204,204,48,240,240,204,204,0
+        .byte 192,192,0,192,192,252,60,0
+        .byte 204,252,12,204,204,204,204,0
+        .byte 240,252,12,204,204,204,204,0
+        .byte 48,252,12,204,204,252,48,0
+        .byte 240,252,12,252,240,192,192,0
+        .byte 48,252,12,204,204,192,60,12
+        .byte 240,252,12,252,240,204,204,0
+        .byte 60,252,0,240,60,252,240,0
+        .byte 252,252,0,48,48,48,48,0
+        .byte 204,204,12,204,204,252,60,0
+        .byte 204,204,12,204,204,48,48,0
+        .byte 204,204,12,204,204,252,204,0
+        .byte 204,204,48,48,48,204,204,0
+        .byte 204,204,12,252,12,252,240,0
+        .byte 252,252,0,12,48,252,252,0
+        .byte 252,48,48,48,48,48,48,252
+        .byte 0,192,192,48,48,12,12,0
         .byte 0,240,48,48,48,48,240,0
-        .byte 0,48,120,252,48,48,48,0
-        .byte 0,0,0,0,0,0,0,255
-        .byte 0,60,102,248,96,96,254,0
-        .byte 0,0,120,12,124,204,124,0
-        .byte 0,96,96,124,102,102,124,0
-        .byte 0,0,60,96,96,96,60,0
-        .byte 0,12,12,124,204,204,124,0
-        .byte 0,0,120,204,248,192,124,0
-        .byte 0,28,48,56,48,48,48,0
-        .byte 0,0,124,204,204,124,12,120
-        .byte 0,192,192,248,204,204,204,0
-        .byte 0,48,0,112,48,48,120,0
-        .byte 0,12,0,12,12,12,108,56
-        .byte 0,96,120,112,112,120,108,0
-        .byte 0,48,48,48,48,48,28,0
-        .byte 0,0,248,252,252,252,252,0
-        .byte 0,0,248,204,204,204,204,0
-        .byte 0,0,120,204,204,204,120,0
-        .byte 0,0,248,204,204,248,192,192
-        .byte 0,0,124,204,204,124,12,14
-        .byte 0,0,60,96,96,96,96,0
-        .byte 0,0,120,192,120,12,248,0
-        .byte 0,48,120,48,48,48,28,0
-        .byte 0,0,204,204,204,204,120,0
-        .byte 0,0,204,204,120,120,48,0
-        .byte 0,0,204,252,252,252,120,0
-        .byte 0,0,204,120,48,120,204,0
-        .byte 0,0,204,204,204,124,12,120
-        .byte 0,0,252,24,48,96,252,0
-        .byte 0,30,24,112,24,24,30,0
-        .byte 0,24,24,24,24,24,24,0
-        .byte 0,240,48,28,48,48,240,0
-        .byte 0,60,120,0,0,0,0,0
-        .byte 124,198,187,227,227,187,198,124
+        .byte 48,252,252,252,252,48,12,48
+        .byte 0,63,63,63,12,51,0,63
+        .byte 0,255,207,51,204,243,60,15
+        .byte 0,0,240,12,252,204,252,0
+        .byte 0,192,192,240,204,204,252,0
+        .byte 252,3,243,195,195,243,3,252
+        .byte 0,12,12,60,204,204,252,0
+        .byte 0,0,60,204,252,192,252,0
+        .byte 0,48,192,240,192,192,192,0
+        .byte 0,0,60,204,204,252,12,240
+        .byte 0,192,192,240,204,204,204,0
+        .byte 0,48,0,240,48,48,240,0
+        .byte 0,12,0,12,12,12,204,48
+        .byte 0,192,204,240,240,204,204,0
+        .byte 0,192,192,192,192,192,48,0
+        .byte 0,0,48,252,252,204,204,0
+        .byte 0,0,240,204,204,204,204,0
+        .byte 0,0,48,204,204,204,48,0
+        .byte 0,0,240,204,204,240,192,192
+        .byte 0,0,60,204,204,60,12,12
+        .byte 0,0,48,204,192,192,192,0
+        .byte 0,0,60,192,48,12,240,0
+        .byte 0,48,252,48,48,48,12,0
+        .byte 204,240,240,240,240,240,240,192
+        .byte 63,255,204,192,192,240,252,192
+        .byte 0,15,63,243,207,243,207,243
+        .byte 60,195,243,243,195,195,195,60
+        .byte 0,48,60,63,15,63,15,63
+        .byte 12,60,12,255,63,255,12,60
+        .byte 0,60,48,240,48,48,60,0
+        .byte 0,48,48,48,48,48,48,0
+        .byte 0,240,48,60,48,48,240,0
+        .byte 0,60,240,0,0,0,0,0
+        .byte 252,3,243,195,195,243,3,252
 jtab:
         .byte 99
 keys:   .byte 80,79,65,81,32,78,77,49,50,51,52
