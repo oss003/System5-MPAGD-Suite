@@ -3455,10 +3455,10 @@ cangr:
 	sta dispx		; coords in dispx,dispy.
 cangh:
 cangh2:
-	lda #(SPR_HGT/4+1)	; default rows to write.
+	lda #(SPR_HGT/3+1)	; default rows to write.
 	sta z80_b
-	lda dispy		; y position.
-	and #3			; does x straddle cells?
+	ldy dispy		; y position.
+	lda V_SPR_PTR,y		; does x straddle cells?
 	bne cangh0		; yes, loop counter is good.
 	dec z80_b		; one less row to write.
 cangh0:

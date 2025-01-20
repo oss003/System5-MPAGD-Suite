@@ -46,7 +46,6 @@
 	SCADTB_hb 	= $DD00		; screen address table hi-byte (256 bytes)
 	SHRAPN 		= $DE00		; shrapnel table (55x6 bytes)
 	V_SPR_PTR	= $DF4A		; Vertical spriteframe pointer (75 bytes)
-	V_SPR_OFF	= $DF95		; Vertical blockcheck pointer (75 bytes)
 
 ; System calls
 
@@ -123,28 +122,15 @@ loops:
 
 ; Set up vertical sprite pointer table
 
-	ldx #0
-	stx tmp
 	ldy #0
 	lda #0
 vspriteloop:
-	lda tmp
 	sta V_SPR_PTR,y
-	txa
-	sta V_SPR_OFF,y
 	clc
-	lda tmp
 	adc #20
-	sta tmp
 	cmp #60
 	bne :+
 	lda #0
-	sta tmp
-:
-	inx
-	cpx #3
-	bne :+
-	ldx #0
 :
 	iny
 	cpy #75
