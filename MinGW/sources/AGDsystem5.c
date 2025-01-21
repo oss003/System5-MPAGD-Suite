@@ -1660,7 +1660,7 @@ void CreateSprites( void )
 // Clear array
 
 			for (i=0; i<120; i++){
-				spr_data[i]=0x20;
+				spr_data[i]=0;		//0x20;
 			}
 
 // Read sprite 0

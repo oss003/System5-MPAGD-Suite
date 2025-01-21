@@ -78,6 +78,50 @@
 
 init:
 
+; Set up screen address table.
+
+setsat:
+	lda #<ScreenAddr	; start of screen.
+	sta scraddr
+	lda #>ScreenAddr
+	sta scraddr+1
+
+	ldx #0
+	ldy #0			; vertical lines on screen.
+setsa0:
+	lda scraddr
+	sta SCADTB_lb,y		; write low byte.
+	lda scraddr+1
+	cpy #ScrHeight*3		; vertical lines on screen.
+	bcc :+
+	ora #$F0		; plot sprites in rom if of screen
+:
+	sta SCADTB_hb,y		; write high byte.
+	inx
+	cpx #3
+	bne :+
+	jsr nline		; next line down.
+	ldx #0
+:
+	iny			; next position in table.
+	bne setsa0
+
+; Set up vertical sprite pointer table
+
+	ldy #0
+	lda #0
+vspriteloop:
+	sta V_SPR_PTR,y
+	clc
+	adc #20
+	cmp #60
+	bne :+
+	lda #0
+:
+	iny
+	cpy #75
+	bne vspriteloop	
+
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Hack for MAME to use VDU40x25
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,22 +163,6 @@ loops:
 	lda #%11000000
 	sta IER
 	cli
-
-; Set up vertical sprite pointer table
-
-	ldy #0
-	lda #0
-vspriteloop:
-	sta V_SPR_PTR,y
-	clc
-	adc #20
-	cmp #60
-	bne :+
-	lda #0
-:
-	iny
-	cpy #75
-	bne vspriteloop	
 
 	rts
 
@@ -295,7 +323,6 @@ joy2:
 ktest:
 	sta tmp
 	lda PORT_A
-;	bit PORT_A
 	bmi not_pressed	; BUG MAME, bit 7 not set ....
 	lda PORT_A
 	cmp tmp
@@ -320,3 +347,141 @@ relkey:
 	bmi relkey
 	rts
 
+;======================================================================
+; Sprite routines
+;======================================================================
+
+;-----------------------------------------------------------------
+; These are the sprite routines.
+; sspria = single sprite, old (ix).
+; ssprib = single sprite, new (ix+5).
+; sspric = both sprites, old (ix) and new (ix+5).
+;-----------------------------------------------------------------
+
+sspria:
+	jsr gsprad		; get old sprite address.
+sspri2:
+	lda z80_e
+	sta dline1+1		; Set spritedata address
+	lda z80_d
+	sta dline1+2
+
+	stx xtmp
+	ldx #0			; vertical lines.
+sspri0:
+	jsr dline		; draw a line.
+
+;.if bflag
+;	cpx #16			; Detect end of line 3
+;.else
+	cpx #20			; Detect end of line 2
+;.endif
+
+	bne sspri0		; no, repeat
+	ldx xtmp
+	rts
+
+;-----------------------------------------------------------------
+; ssprib = single sprite, new (ix).
+;-----------------------------------------------------------------
+
+ssprib:
+	jsr gspran 		; get new sprite address.
+				; z80_de = new sprite address
+	jmp sspri2
+	
+;-----------------------------------------------------------------
+; sspric = erase old sprite and plot new sprite line by line
+;-----------------------------------------------------------------
+
+sspric:
+	jsr gsprad 		; get old sprite address.
+				; z80_de = old sprite address
+	lda z80_e
+	sta ddline1+1		; Set spritedata address
+	lda z80_d
+	sta ddline1+2
+	jsr exx  		; store addresses.
+
+	jsr gspran 		; get new sprite addresses.
+				; z80_de = old sprite address
+	lda z80_e
+	sta dline1+1		; Set spritedata address
+	lda z80_d
+	sta dline1+2
+
+	stx xtmp
+	ldx #0			; vertical lines.
+lloop:
+	jsr dline 		; draw a line.
+	dex
+	dex
+	dex
+	dex
+	dex
+	jsr ddline 		; delete a line.
+
+;.if bflag
+;	cpx #16			; Detect end of line 3
+;.else
+	cpx #20			; Detect end of line 2
+;.endif
+	bne lloop		; no, repeat
+	ldx xtmp
+	rts
+
+;-----------------------------------------------------------------
+; Erase sprite line
+;-----------------------------------------------------------------
+
+dline:
+	ldy sprline,x		; point to screenleft
+
+	lda #5
+	sta rrow
+dline1:
+	lda objdta,x		; fetch spriteleft byte
+	beq :+
+	eor (scraddr),y		; merge with screenleft
+	ora #$20		; Set bit 5
+	sta (scraddr),y		; write screenleft
+:
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+
+	dec rrow
+	bne dline1
+	rts
+
+;-----------------------------------------------------------------
+; Draw sprite line
+;-----------------------------------------------------------------
+
+ddline:
+	ldy sprline,x		; point to screenleft
+
+	lda #5
+	sta rrow
+ddline1:
+	lda objdta,x		; fetch spriteleft byte
+	beq :+
+	eor (z80_hlp),y		; merge with screenleft
+	ora #$20		; Set bit 5
+	sta (z80_hlp),y		; write spritedata0
+:
+	inx			; next spritebyte
+	iny			; point to screenmiddle
+
+	dec rrow
+	bne ddline1
+	rts
+
+;-----------------------------------------------------------------
+; Spritebyte location on screen
+;-----------------------------------------------------------------
+
+sprline:
+	.byte $00,$01,$02,$03,$04
+	.byte $28,$29,$2a,$2b,$2c
+	.byte $50,$51,$52,$53,$54
+	.byte $78,$79,$7a,$7b,$7c

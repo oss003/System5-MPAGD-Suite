@@ -1721,43 +1721,10 @@ lcol4:
 
 game:
 
-; Set up screen address table.
 
-setsat:
-	lda #<ScreenAddr	; start of screen.
-	sta scraddr
-	lda #>ScreenAddr
-	sta scraddr+1
-
-	ldx #0
-	ldy #0			; vertical lines on screen.
-setsa0:
-	lda scraddr
-	sta SCADTB_lb,y		; write low byte.
-	lda scraddr+1
-	cpy #ScrHeight*3		; vertical lines on screen.
-	bcc :+
-	ora #$F0		; plot sprites in rom if of screen
-:
-	sta SCADTB_hb,y		; write high byte.
-	inx
-	cpx #3
-	bne :+
-	jsr nline		; next line down.
-	ldx #0
-:
-	iny			; next position in table.
-	bne setsa0
-
-; Set up vertical sprite ptr per line
-
-setvsptr:
-
-	
 ; Init hardware and graphics mode
 
 	jsr init 		; Init hardware
-
 
 ; Init joystick
 
@@ -3595,58 +3562,23 @@ getcol:
 gtblk:
 	ldy #0
 	lda (bufaddr),y
-	sta z80_a
-        lda #0
-        sta (bufaddr),y		; make it empty now.
-       
-	lda bufaddr		; set dispx
-	and #31
-	sta dispx
+	sta colpatt		; save collectable block nr
 
-	lda bufaddr+1		; Set dispy
+        lda #0
+        sta (bufaddr),y		; make it empty now in MAP.
+
+	lda bufaddr		; calculate screenaddr
+	sta scraddr
 	sec
-	sbc #>MAP
-	sta bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
-	asl bufaddr
-	rol bufaddr+1
 	lda bufaddr+1
-	sta dispy
- 
-	lda colpatt		; get blocknr
-	sta z80_e		; displacement in e.
-	lda #0
-	sta z80_d		; no high byte.
-	asl z80_e  		; multiply char by 8.
-	rol z80_d
-	asl z80_e
-	rol z80_d
-	asl z80_e
-	rol z80_d
-	clc
-	lda z80_e
-	adc #<chgfx 		; address of graphics.
-	sta tileaddr
-	lda z80_d
-	adc #>chgfx
-	sta tileaddr+1
-	jsr gprad 		; get screen address.
-	ldx #7			; number of pixel rows to write.
-gtblk0:
-	ldy #0
-	lda (tileaddr),y 	; get image byte.
-	ldy scrtab,x
-	eor (scraddr),y 	; XOR tile on screen
-	sta (scraddr),y 	; copy to screen.
-	inc tileaddr 		; next image byte.
-	bne :+
-	inc tileaddr+1
-:
-	dex	 		; repeat for 8 pixel rows.
-	bpl gtblk0
+	sbc #>(MAP-ScreenAddr)	;$d4
+	sta scraddr+1
+
+	ldy #0			; erase block on screen
+	lda (scraddr),y
+	eor colpatt
+	sta (scraddr),y
+
 	rts
 .endif
 
@@ -4667,198 +4599,6 @@ spmask:
 tmp1:	.byte 0
 tmp2:	.byte 0
 
-;-----------------------------------------------------------------
-; These are the sprite routines.
-; sspria = single sprite, old (ix).
-; ssprib = single sprite, new (ix+5).
-; sspric = both sprites, old (ix) and new (ix+5).
-;-----------------------------------------------------------------
-
-sspria:
-	jsr gsprad		; get old sprite address.
-sspri2:
-	lda z80_e
-	sta dline1+1		; Set spritedata address
-	sta dline2a+1
-	sta dline2b+1
-	sta dline2c+1
-	sta dline2d+1
-	lda z80_d
-	sta dline1+2
-	sta dline2a+2
-	sta dline2b+2
-	sta dline2c+2
-	sta dline2d+2
-	stx xtmp
-	ldx #0			; vertical lines.
-sspri0:
-	jsr dline		; draw a line.
-
-;.if bflag
-;	cpx #16			; Detect end of line 3
-;.else
-	cpx #20			; Detect end of line 2
-;.endif
-
-	bne sspri0		; no, repeat
-	ldx xtmp
-	rts
-
-;-----------------------------------------------------------------
-; ssprib = single sprite, new (ix).
-;-----------------------------------------------------------------
-
-ssprib:
-	jsr gspran 		; get new sprite address.
-				; z80_de = new sprite address
-	jmp sspri2
-	
-;-----------------------------------------------------------------
-; sspric = erase old sprite and plot new sprite line by line
-;-----------------------------------------------------------------
-
-sspric:
-	jsr gsprad 		; get old sprite address.
-				; z80_de = old sprite address
-	lda z80_e
-	sta ddline1+1		; Set spritedata address
-	sta ddline2a+1
-	sta ddline2b+1
-	sta ddline2c+1
-	sta ddline2d+1
-	lda z80_d
-	sta ddline1+2
-	sta ddline2a+2
-	sta ddline2b+2
-	sta ddline2c+2
-	sta ddline2d+2
-	jsr exx  		; store addresses.
-
-	jsr gspran 		; get new sprite addresses.
-				; z80_de = old sprite address
-	lda z80_e
-	sta dline1+1		; Set spritedata address
-	sta dline2a+1
-	sta dline2b+1
-	sta dline2c+1
-	sta dline2d+1
-	lda z80_d
-	sta dline1+2
-	sta dline2a+2
-	sta dline2b+2
-	sta dline2c+2
-	sta dline2d+2
-
-	stx xtmp
-	ldx #0			; vertical lines.
-lloop:
-	jsr dline 		; draw a line.
-	dex
-	dex
-	dex
-	dex
-	dex
-	jsr ddline 		; delete a line.
-
-;.if bflag
-;	cpx #16			; Detect end of line 3
-;.else
-	cpx #20			; Detect end of line 2
-;.endif
-	bne lloop		; no, repeat
-	ldx xtmp
-	rts
-
-
-;-----------------------------------------------------------------
-
-dline:
-	ldy sprline,x		; point to screenleft
-dline1:
-	lda objdta,x		; fetch spriteleft byte
-	eor (scraddr),y		; merge with screenleft
-	ora #$20		; Set bit 5
-	sta (scraddr),y		; write screenleft
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-dline2a:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (scraddr),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (scraddr),y		; write screenmiddle
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-dline2b:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (scraddr),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (scraddr),y		; write screenmiddle
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-dline2c:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (scraddr),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (scraddr),y		; write screenmiddle
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-dline2d:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (scraddr),y		; merge with screenright
-	ora #$20		; Set bit 5
-	sta (scraddr),y		; write screenright
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-
-	rts
-
-;-----------------------------------------------------------------
-
-ddline:
-	ldy sprline,x		; point to screenleft
-ddline1:
-	lda objdta,x		; fetch spriteleft byte
-	eor (z80_hlp),y		; merge with screenleft
-	ora #$20		; Set bit 5
-	sta (z80_hlp),y		; write spritedata0
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-ddline2a:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (z80_hlp),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (z80_hlp),y		; write spritedata1
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-ddline2b:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (z80_hlp),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (z80_hlp),y		; write spritedata2
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-ddline2c:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (z80_hlp),y		; merge with screenmiddle
-	ora #$20		; Set bit 5
-	sta (z80_hlp),y		; write spritedata3
-	inx			; next spritebyte
-	iny			; point to screenright
-ddline2d:
-	lda objdta,x		; fetch spritemiddle byte
-	eor (z80_hlp),y		; merge with screenright
-	ora #$20		; Set bit 5
-	sta (z80_hlp),y		; write spritedata5
-	inx			; next spritebyte
-	iny			; point to screenmiddle
-
-	rts
-
-sprline:
-	.byte $00,$01,$02,$03,$04
-	.byte $28,$29,$2a,$2b,$2c
-	.byte $50,$51,$52,$53,$54
-	.byte $78,$79,$7a,$7b,$7c
 
 ;----------------------------------------------------------------------
 ; Line drawn, now work out next target address.
