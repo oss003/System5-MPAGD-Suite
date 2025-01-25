@@ -621,23 +621,24 @@ fobj:
 .endif
 
 ;----------------------------------------------------
-; Delay routine 1/50 sec
-;
-; Wait 1/60 sec = 16666 usec
-; Wait 208 x 16 =  3328 usec
-;                 19994 usec
-; rts           =     6 usec
-; Total         = 20000 usec
+; Delay routine A * 1/25 sec
 ;----------------------------------------------------
 
 delay:
 	sta xtmp
+
+del_start:
+	lda #0
+	sta frames_passed
 del_loop:
-	lda frames_passed	; Wait if not at 25Hz
+	lda frames_passed
 	cmp #2
 	bcc del_loop
+
+	lda #0
+	sta frames_passed
 	dec xtmp
-	bne del_loop
+	bne del_start
 	rts
 
 ;----------------------------------------------------
@@ -2920,18 +2921,13 @@ pattr2:
 colpatt:	.byte 0
 
 panp:
-;	sta z80_e		; displacement in e.
-;	lda #0
-;	sta z80_d		; no high byte.
-;	asl z80_e  		; multiply char by 8.
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d
-	asl a
+	sta z80_e		; displacement in e.
+	lda #0
+	sta z80_d		; no high byte.
+	asl z80_e  		; multiply char by 8.
+	rol z80_d
 	clc
-;	lda z80_e
+	lda z80_e
 	adc #<chgfx 		; address of graphics.
 	sta tileaddr
 	lda z80_d
@@ -3593,6 +3589,8 @@ gtblk:
 ;  A  = 0 is ok, A=5 is not ok
 ;--------------------------------------------------------------
 
+; Calculate map address from dispx,dispy
+
 tded:
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
@@ -3600,122 +3598,67 @@ tded:
 	iny
 	lda (z80_ix),y 		; x coordinate.
 	sta dispx		; coords in dispx,dispy.
-	jsr tstbl		; get map address.
-	pha
-	lda #ScrWidth-1		; default distance to next line down.
+	jsr tstbl		; get map address in bufaddr.
+
+; Set variables
+
+	lda #0
+	sta z80_c		; reset x-stradding skip flag
+
+	lda #4			; Set nr of sprite columns
+	sta rcol
+	lda dispx
+	and #1
+	bne :+
+	dec rcol
+	inc z80_c		; set x-stradding skip flag
+:
+	lda rcol
 	sta z80_e
+
+	lda #3			; Set nr of sprite rows
+	sta rrow
+	ldy dispy
+	lda V_SPR_PTR,y
+	bne :+
+	dec rrow
+:
+	ldx #0
+vspr_loop:
+	lda z80_e
+	sta rcol
+hspr_loop:
+	ldy spr_ptr,x
+	lda (bufaddr),y
+	cmp z80_b
+	beq end_sprloop
+	inx
+	dec rcol
+	bpl hspr_loop
+;	inx
+	ldy z80_c		; Test x-stradding skip flag
+	beq :+			; If reset, no skipping
+	inx			; If set, skip 1 byte
+:
+	dec rrow
+	bpl vspr_loop
+end_sprloop:
+	pha
+	clc
+	tya
+	adc bufaddr
+	sta bufaddr
+	bcc :+
+	inc bufaddr+1
+:
 	pla
-	cmp z80_b		; is this the required block?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr 		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch type.
-	cmp z80_b 		; is this deadly/custom?
-	bne :+
-	rts			; yes.
-:
-	lda dispx		; horizontal position.
-	sta z80_c 		; store column in c register.
-	and #1			; is it straddling cells?
-	bne :+
-	jmp tded0		; no.
-:
-	inc bufaddr 		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this the block?
-	bne :+
-	rts			; yes.
-:
-	dec z80_e		; one less cell to next row down.
-tded0:
-	clc 			; point to next row.
-	lda bufaddr
-	adc z80_e
-	sta bufaddr
-	bcc :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch left cell block.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr 		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	lda z80_c		; horizontal position.
-	and #1			; is it straddling cells?
-	bne :+
-	jmp tded1 		; no.
-:
-	inc bufaddr		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-tded1:
-	lda dispy		; vertical position.
-	and #3 			; is it straddling cells?
-	bne :+
-	rts			; no, job done.
-:
-	clc			; point to next row.
-	lda bufaddr
-	adc z80_e
-	sta bufaddr
-	bcc :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch left cell block.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	lda z80_c		; horizontal position.
-	and #1			; is it straddling cells?
-	bne :+
-	rts			; no.
-:
-	inc bufaddr		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch final type.
-	rts 			; return with final type in accumulator.
+	rts
+
+spr_ptr:
+	.byte   0,  1,  2,  3,  4
+	.byte  40, 41, 42, 43, 44
+	.byte  80, 81, 82, 83, 84
+	.byte 120,121,122,123,124
 
 ;---------------------------------------------------
 ; Fetch block type at (dispx, dispy).
@@ -4012,7 +3955,12 @@ bmsg3:
 	pla
 	asl a  			; was terminator flag set?
 	bcc bmsg4		; no, keep going.
-	jmp dscor2
+	jsr dscor2
+	dec dispx
+	inc dispy
+	jsr dscor2
+	dec dispy
+	rts
 bmsg2:
 	lda #0
 	sta dispx

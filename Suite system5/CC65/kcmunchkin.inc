@@ -621,23 +621,24 @@ fobj:
 .endif
 
 ;----------------------------------------------------
-; Delay routine 1/50 sec
-;
-; Wait 1/60 sec = 16666 usec
-; Wait 208 x 16 =  3328 usec
-;                 19994 usec
-; rts           =     6 usec
-; Total         = 20000 usec
+; Delay routine A * 1/25 sec
 ;----------------------------------------------------
 
 delay:
 	sta xtmp
+
+del_start:
+	lda #0
+	sta frames_passed
 del_loop:
-	lda frames_passed	; Wait if not at 25Hz
+	lda frames_passed
 	cmp #2
 	bcc del_loop
+
+	lda #0
+	sta frames_passed
 	dec xtmp
-	bne del_loop
+	bne del_start
 	rts
 
 ;----------------------------------------------------
@@ -2920,18 +2921,13 @@ pattr2:
 colpatt:	.byte 0
 
 panp:
-;	sta z80_e		; displacement in e.
-;	lda #0
-;	sta z80_d		; no high byte.
-;	asl z80_e  		; multiply char by 8.
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d
-;	asl z80_e
-;	rol z80_d
-	asl a
+	sta z80_e		; displacement in e.
+	lda #0
+	sta z80_d		; no high byte.
+	asl z80_e  		; multiply char by 8.
+	rol z80_d
 	clc
-;	lda z80_e
+	lda z80_e
 	adc #<chgfx 		; address of graphics.
 	sta tileaddr
 	lda z80_d
@@ -3593,6 +3589,8 @@ gtblk:
 ;  A  = 0 is ok, A=5 is not ok
 ;--------------------------------------------------------------
 
+; Calculate map address from dispx,dispy
+
 tded:
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
@@ -3600,122 +3598,67 @@ tded:
 	iny
 	lda (z80_ix),y 		; x coordinate.
 	sta dispx		; coords in dispx,dispy.
-	jsr tstbl		; get map address.
-	pha
-	lda #ScrWidth-1		; default distance to next line down.
+	jsr tstbl		; get map address in bufaddr.
+
+; Set variables
+
+	lda #0
+	sta z80_c		; reset x-stradding skip flag
+
+	lda #4			; Set nr of sprite columns
+	sta rcol
+	lda dispx
+	and #1
+	bne :+
+	dec rcol
+	inc z80_c		; set x-stradding skip flag
+:
+	lda rcol
 	sta z80_e
+
+	lda #3			; Set nr of sprite rows
+	sta rrow
+	ldy dispy
+	lda V_SPR_PTR,y
+	bne :+
+	dec rrow
+:
+	ldx #0
+vspr_loop:
+	lda z80_e
+	sta rcol
+hspr_loop:
+	ldy spr_ptr,x
+	lda (bufaddr),y
+	cmp z80_b
+	beq end_sprloop
+	inx
+	dec rcol
+	bpl hspr_loop
+;	inx
+	ldy z80_c		; Test x-stradding skip flag
+	beq :+			; If reset, no skipping
+	inx			; If set, skip 1 byte
+:
+	dec rrow
+	bpl vspr_loop
+end_sprloop:
+	pha
+	clc
+	tya
+	adc bufaddr
+	sta bufaddr
+	bcc :+
+	inc bufaddr+1
+:
 	pla
-	cmp z80_b		; is this the required block?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr 		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch type.
-	cmp z80_b 		; is this deadly/custom?
-	bne :+
-	rts			; yes.
-:
-	lda dispx		; horizontal position.
-	sta z80_c 		; store column in c register.
-	and #1			; is it straddling cells?
-	bne :+
-	jmp tded0		; no.
-:
-	inc bufaddr 		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this the block?
-	bne :+
-	rts			; yes.
-:
-	dec z80_e		; one less cell to next row down.
-tded0:
-	clc 			; point to next row.
-	lda bufaddr
-	adc z80_e
-	sta bufaddr
-	bcc :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch left cell block.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr 		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	lda z80_c		; horizontal position.
-	and #1			; is it straddling cells?
-	bne :+
-	jmp tded1 		; no.
-:
-	inc bufaddr		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-tded1:
-	lda dispy		; vertical position.
-	and #3 			; is it straddling cells?
-	bne :+
-	rts			; no, job done.
-:
-	clc			; point to next row.
-	lda bufaddr
-	adc z80_e
-	sta bufaddr
-	bcc :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch left cell block.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	inc bufaddr		; next cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y 	; fetch type.
-	cmp z80_b		; is this fatal?
-	bne :+
-	rts			; yes.
-:
-	lda z80_c		; horizontal position.
-	and #1			; is it straddling cells?
-	bne :+
-	rts			; no.
-:
-	inc bufaddr		; last cell.
-	bne :+
-	inc bufaddr+1
-:
-	ldy #0
-	lda (bufaddr),y		; fetch final type.
-	rts 			; return with final type in accumulator.
+	rts
+
+spr_ptr:
+	.byte   0,  1,  2,  3,  4
+	.byte  40, 41, 42, 43, 44
+	.byte  80, 81, 82, 83, 84
+	.byte 120,121,122,123,124
 
 ;---------------------------------------------------
 ; Fetch block type at (dispx, dispy).
@@ -4012,7 +3955,12 @@ bmsg3:
 	pla
 	asl a  			; was terminator flag set?
 	bcc bmsg4		; no, keep going.
-	jmp dscor2
+	jsr dscor2
+	dec dispx
+	inc dispy
+	jsr dscor2
+	dec dispy
+	rts
 bmsg2:
 	lda #0
 	sta dispx
@@ -5823,18 +5771,12 @@ stmap:  .byte 1
 
 evnt00:
         jsr getcol	; GETBLOCKS
-        ldy #11
-        lda (z80_ix),y
-        clc
-        adc #1
-        ldy #11
-        sta (z80_ix),y
         lda #0
         sta varm
         lda joyval	; KEY
         and #8
         beq :+
-        jmp a00125
+        jmp a00099
 :
         lda #4
         ldy #6
@@ -5843,17 +5785,17 @@ evnt00:
         sta varm
         jsr cangu	; CANGOUP
         beq :+
-        jmp a00125
+        jmp a00099
 :
         ldy #8 		; SPRITEUP
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00125: lda joyval	; KEY
+a00099: lda joyval	; KEY
         and #4
         beq :+
-        jmp a00208
+        jmp a00181
 :
         lda #5
         ldy #6
@@ -5862,17 +5804,17 @@ a00125: lda joyval	; KEY
         sta varm
         jsr cangd	; CANGODOWN
         beq :+
-        jmp a00208
+        jmp a00181
 :
         ldy #8 		; SPRITEDOWN
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00208: lda joyval	; KEY
+a00181: lda joyval	; KEY
         and #2
         beq :+
-        jmp a00312
+        jmp a00299
 :
         lda #3
         ldy #6
@@ -5881,22 +5823,25 @@ a00208: lda joyval	; KEY
         sta varm
         jsr cangl	; CANGOLEFT
         beq :+
-        jmp a00312
+        jmp a00299
 :
-        lda #4
-        ldy #9
-        cmp (z80_ix),y
-        bcc *+5
-        jmp a00312
         ldy #9 		; SPRITELEFT
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-a00312: lda joyval	; KEY
+        lda #2
+        ldy #9
+        cmp (z80_ix),y
+        beq *+5
+        jmp a00299
+        lda #71
+        ldy #9
+        sta (z80_ix),y
+a00299: lda joyval	; KEY
         and #1
         beq :+
-        jmp a00421
+        jmp a00418
 :
         lda #2
         ldy #6
@@ -5905,200 +5850,464 @@ a00312: lda joyval	; KEY
         sta varm
         jsr cangr	; CANGORIGHT
         beq :+
-        jmp a00421
+        jmp a00418
 :
-        lda #72
-        ldy #9
-        cmp (z80_ix),y
-        bcc *+4
-        bne *+5
-        jmp a00421
         ldy #9 		; SPRITERIGHT
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-a00421: lda #0
+        lda #72
+        ldy #9
+        cmp (z80_ix),y
+        beq *+5
+        jmp a00418
+        lda #3
+        ldy #9
+        sta (z80_ix),y
+a00418: lda #0
         cmp varm
         bcc *+5
-        jmp a00449
+        jmp a00446
         lda #0		; ANIMATE
         jsr animsp
-a00449: ; SPRITEINK command
-        lda #1 	; COLLISION
+a00446: lda #1 	; COLLISION
         sta z80_b
         jsr sktyp
         bcs :+
-        jmp a00515
+        jmp a00518
 :
-        lda #24		; AT
-        sta chary
-        lda #17
-        sta charx
-        lda #6		; PRINT
-        jsr dmsg
-        jmp a00544
-a00515: lda #24		; AT
-        sta chary
-        lda #17
-        sta charx
-        lda #7		; PRINT
-        jsr dmsg
-a00544: rts
-evnt01:
-        lda #0		; ANIMATE
-        jsr animsp
-        lda #0
-        cmp varc
-        beq *+5
-        jmp b00120
-        lda #CUSTOM	; CUSTOM
+        lda #2	; SPAWN
+        sta z80_c
+        lda #6
         sta z80_b
-        jsr tded
-        cmp z80_b
-        beq :+
-        jmp b00108
-:
+        jsr spawn
+        lda #255	; REMOVE
+        ldy #5
+        sta (z80_ix),y
+        lda #1
+        sta varq
+a00518: rts
+evnt01:
+        lda #1
+        cmp varq
+        beq *+5
+        jmp b00039
+        lda #255	; REMOVE
+        ldy #5
+        sta (z80_ix),y
+        rts		; EXIT
+b00039: lda #0
+        sta vars
+        lda #0
+        sta vart
+        lda #0
+        sta varu
+        lda #0
+        sta varv
+        ldy #9
+        lda (z80_ix),y
+        sta varm
+        lda #4
+        sta z80_c
+        lda varm
+        sec
+        sbc z80_c
+        sta varm
+        lda varm
+        sta z80_d
+        lda #10
+        sta z80_e
+        jsr idiv
+        lda z80_d
+        sta varm
+        lda varm
+        asl a
+        sta z80_d
+        asl a
+        asl a
+        clc
+        adc z80_d
+        sta varm
+        lda #4
+        sta z80_c
+        lda varm
+        clc
+        adc z80_c
+        sta varm
+        ldy #8
+        lda (z80_ix),y
+        sta varn
         lda #3
+        sta z80_c
+        lda varn
+        sec
+        sbc z80_c
+        sta varn
+        lda varn
+        sta z80_d
+        lda #12
+        sta z80_e
+        jsr idiv
+        lda z80_d
+        sta varn
+        lda varn
+        sta z80_d
+        lda #12
+        sta z80_h
+        jsr imul
+        lda z80_l
+        sta varn
+        lda #3
+        sta z80_c
+        lda varn
+        clc
+        adc z80_c
+        sta varn
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp b00342
+:
+        lda #1
+        sta vars
+b00342: jsr cangr	; CANGORIGHT
+        beq :+
+        jmp b00367
+:
+        lda #1
+        sta vart
+b00367: jsr cangu	; CANGOUP
+        beq :+
+        jmp b00391
+:
+        lda #1
+        sta varu
+b00391: jsr cangd	; CANGODOWN
+        beq :+
+        jmp b00415
+:
+        lda #1
+        sta varv
+b00415: lda #0
+        sta varm
+        lda #1
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00494
+        jsr cangu	; CANGOUP
+        beq :+
+        jmp b00470
+:
+        lda #1
+        sta varm
+b00470: jsr cangd	; CANGODOWN
+        beq :+
+        jmp b00494
+:
+        lda #1
+        sta varm
+b00494: lda #0
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00565
+        jsr cangu	; CANGOUP
+        beq :+
+        jmp b00540
+:
+        lda #1
+        sta varm
+b00540: jsr cangd	; CANGODOWN
+        beq :+
+        jmp b00565
+:
+        lda #1
+        sta varm
+b00565: lda #3
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00636
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp b00612
+:
+        lda #1
+        sta varm
+b00612: jsr cangr	; CANGORIGHT
+        beq :+
+        jmp b00636
+:
+        lda #1
+        sta varm
+b00636: lda #2
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00708
+        jsr cangl	; CANGOLEFT
+        beq :+
+        jmp b00683
+:
+        lda #1
+        sta varm
+b00683: jsr cangr	; CANGORIGHT
+        beq :+
+        jmp b00708
+:
+        lda #1
+        sta varm
+b00708: lda #1
+        cmp varm
+        beq *+5
+        jmp b00862
+        lda #0
+        cmp vari
+        beq *+5
+        jmp b00862
+        lda #1
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00772
+        lda #1
+        sta vari
+b00772: lda #0
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00802
+        lda #1
+        sta vari
+b00802: lda #3
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00832
+        lda #2
+        sta vari
+b00832: lda #2
+        ldy #10
+        cmp (z80_ix),y
+        beq *+5
+        jmp b00862
+        lda #2
+        sta vari
+b00862: lda #1
+        cmp vari
+        beq *+5
+        jmp b01066
+        lda #2
         sta z80_d	; GETRANDOM
         jsr random
         sta z80_h
         jsr imul
         lda z80_h
         sta varrnd
-        lda varrnd
+        lda #0
+        cmp varrnd
+        beq *+5
+        jmp b01000
+        lda #1
+        cmp varu
+        beq *+5
+        jmp b00965
+        lda #3
         ldy #10
         sta (z80_ix),y
-b00108: lda #1
-        sta varc
-        jmp b00128
-b00120: lda #0
-        sta varc
-b00128: lda #0
+        jmp b00996
+b00965: lda #1
+        cmp varv
+        beq *+5
+        jmp b00996
+        lda #2
+        ldy #10
+        sta (z80_ix),y
+b00996: jmp b01066
+b01000: lda #1
+        cmp varv
+        beq *+5
+        jmp b01035
+        lda #2
+        ldy #10
+        sta (z80_ix),y
+        jmp b01066
+b01035: lda #1
+        cmp varu
+        beq *+5
+        jmp b01066
+        lda #3
+        ldy #10
+        sta (z80_ix),y
+b01066: lda #2
+        cmp vari
+        beq *+5
+        jmp b01269
+        lda #2
+        sta z80_d	; GETRANDOM
+        jsr random
+        sta z80_h
+        jsr imul
+        lda z80_h
+        sta varrnd
+        lda #0
+        cmp varrnd
+        beq *+5
+        jmp b01204
+        lda #1
+        cmp vars
+        beq *+5
+        jmp b01169
+        lda #1
+        ldy #10
+        sta (z80_ix),y
+        jmp b01199
+b01169: lda #1
+        cmp vart
+        beq *+5
+        jmp b01199
+        lda #0
+        ldy #10
+        sta (z80_ix),y
+b01199: jmp b01269
+b01204: lda #1
+        cmp vart
+        beq *+5
+        jmp b01239
+        lda #0
+        ldy #10
+        sta (z80_ix),y
+        jmp b01269
+b01239: lda #1
+        cmp vars
+        beq *+5
+        jmp b01269
+        lda #1
+        ldy #10
+        sta (z80_ix),y
+b01269: lda #0
+        sta vari
+        lda #1
         ldy #10
         cmp (z80_ix),y
         beq *+5
-        jmp b00291
-        jsr cangl	; CANGOLEFT
-        beq :+
-        jmp b00238
-:
-        lda #4
-        ldy #9
-        cmp (z80_ix),y
-        bcc *+5
-        jmp b00220
+        jmp b01395
+        lda #1
+        cmp vars
+        beq *+5
+        jmp b01382
         ldy #9 		; SPRITELEFT
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-        jmp b00233
-b00220: lda #1
+        lda #2
+        ldy #9
+        cmp (z80_ix),y
+        beq *+5
+        jmp b01377
+        lda #71
+        ldy #9
+        sta (z80_ix),y
+b01377: jmp b01395
+b01382: lda #0
         ldy #10
         sta (z80_ix),y
-b00233: jmp b00286
-b00238: lda #3
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda varrnd
-        ldy #10
-        sta (z80_ix),y
-b00286: jmp b00698
-b00291: lda #1
+b01395: lda #0
         ldy #10
         cmp (z80_ix),y
         beq *+5
-        jmp b00459
-        jsr cangr	; CANGORIGHT
-        beq :+
-        jmp b00405
-:
-        lda #70
-        ldy #9
-        cmp (z80_ix),y
-        bcc *+4
-        bne *+5
-        jmp b00387
+        jmp b01514
+        lda #1
+        cmp vart
+        beq *+5
+        jmp b01501
         ldy #9 		; SPRITERIGHT
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-        jmp b00401
-b00387: lda #0
+        lda #72
+        ldy #9
+        cmp (z80_ix),y
+        beq *+5
+        jmp b01496
+        lda #3
+        ldy #9
+        sta (z80_ix),y
+b01496: jmp b01514
+b01501: lda #1
         ldy #10
         sta (z80_ix),y
-b00401: jmp b00454
-b00405: lda #3
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda varrnd
-        ldy #10
-        sta (z80_ix),y
-b00454: jmp b00698
-b00459: lda #2
+b01514: lda #3
         ldy #10
         cmp (z80_ix),y
         beq *+5
-        jmp b00580
-        jsr cangu	; CANGOUP
-        beq :+
-        jmp b00527
-:
+        jmp b01597
+        lda #1
+        cmp varu
+        beq *+5
+        jmp b01583
         ldy #8 		; SPRITEUP
         lda (z80_ix),y
         sec
         sbc #1
         sta (z80_ix),y
-        jmp b00575
-b00527: lda #3
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda varrnd
+        jmp b01597
+b01583: lda #2
         ldy #10
         sta (z80_ix),y
-b00575: jmp b00698
-b00580: lda #3
+b01597: lda #2
         ldy #10
         cmp (z80_ix),y
         beq *+5
-        jmp b00698
-        jsr cangd	; CANGODOWN
-        beq :+
-        jmp b00649
-:
+        jmp b01680
+        lda #1
+        cmp varv
+        beq *+5
+        jmp b01666
         ldy #8 		; SPRITEDOWN
         lda (z80_ix),y
         clc
         adc #1
         sta (z80_ix),y
-        jmp b00698
-b00649: lda #3
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda varrnd
+        jmp b01680
+b01666: lda #3
         ldy #10
         sta (z80_ix),y
-b00698: rts
-evnt02:
+b01680: lda #3		; ANIMATE
+        jsr animsp
         rts
+evnt02:
+        ldy #11
+        lda (z80_ix),y
+        clc
+        adc #1
+        ldy #11
+        sta (z80_ix),y
+        lda #2
+        ldy #11
+        cmp (z80_ix),y
+        beq *+5
+        jmp c00128
+        lda #7
+        ldy #7
+        cmp (z80_ix),y
+        beq *+5
+        jmp c00104
+        lda #255	; REMOVE
+        ldy #5
+        sta (z80_ix),y
+        lda #1 		; KILL
+        sta deadf
+        rts		; EXIT
+c00104: lda #0
+        ldy #11
+        sta (z80_ix),y
+        lda #0		; ANIMATE
+        jsr animsp
+c00128: rts
 evnt03:
         rts
 evnt04:
@@ -6117,26 +6326,26 @@ evnt09:
         cmp (z80_ix),y
         beq *+5
         jmp j00037
-        lda #0
+        lda #1
         ldy #10
         sta (z80_ix),y
 j00037: lda #2
         ldy #5
         cmp (z80_ix),y
         beq *+5
-        jmp j00073
-        lda #2
-        ldy #10
+        jmp j00072
+        lda #0
+        ldy #7
         sta (z80_ix),y
-j00073: rts
+j00072: rts
 evnt10:
-        lda #25 	; DELAY
-        jsr delay
+        lda #1 	; INK
+        jsr setfgcol
         lda #0		; AT
         sta chary
         lda #1
         sta charx
-        lda #8		; PRINT
+        lda #6		; PRINT
         jsr dmsg
         lda #0		; AT
         sta chary
@@ -6146,6 +6355,18 @@ evnt10:
         lda #6
         sta z80_b
         jsr dscor
+        lda #0		; AT
+        sta chary
+        lda #30
+        sta charx
+        lda #7		; PRINT
+        jsr dmsg
+        lda #0		; AT
+        sta chary
+        lda #37
+        sta charx
+        lda numlif	; DISPLAY
+        jsr disply
         rts
 evnt11:
         rts
@@ -6153,50 +6374,56 @@ evnt12:
         lda #5 	; PAPER
         jsr setbgcol
         jsr cls		; CLS
-        lda #200 	; DELAY
-        jsr delay
+        lda #0
+        sta varq
+        lda #3
+        sta numlif
         rts
 evnt13:
         rts
 evnt14:
+        lda #5 	; PAPER
+        jsr setbgcol
         jsr cls		; CLS
         rts
 evnt15:
         rts
 evnt16:
+        lda numlif
+        sec
+        sbc #1
+        sta numlif
+        lda #0
+        sta varq
+        lda #5 	; DELAY
+        jsr delay
         rts
 evnt17:
         lda #1		; PRINTMODE
         sta prtmod
-        lda #8
+        lda #1 	; INK
+        jsr setfgcol
+        lda #13		; AT
         sta chary
-        lda #13
+        lda #15
         sta charx
-        ; COLOUR command
-        lda #9		; PRINT
+        lda #8		; PRINT
         jsr dmsg
-        lda #2
-        sta z80_c
-        lda chary
-        clc
-        adc z80_c
-        sta chary
-        lda #13
-        sta charx
-        ; COLOUR command
-        lda #10		; PRINT
-        jsr dmsg
-        jsr prskey	; WAITKEY
+        lda #0		; PRINTMODE
+        sta prtmod
+        lda #50 	; DELAY
+        jsr delay
+        lda #0
+        sta numlif
         rts
 evnt18:
         rts
 evnt19:
-        ; COLOUR command
         lda #14
         sta chary
         lda #8
         sta charx
-        lda #11		; PRINT
+        lda #9		; PRINT
         jsr dmsg
         rts
 evnt20:
@@ -6214,14 +6441,12 @@ msgdat:
         .byte " GAM",197
         .byte " OVE",210
         .byte " NEW HIGH SCOR",197
-        .byte "HIT:",177
-        .byte "HIT:",160
         .byte "SCORE:",160
-        .byte " GAME",160
-        .byte " OVER",160
+        .byte "LIVES:",160
+        .byte "GAME OVE",210
         .byte " NEW HIGH SCORE",160
 nummsg:
-        .byte 12
+        .byte 10
 chgfx:
         .byte 0,1
         .byte 127,1
@@ -6311,35 +6536,84 @@ sprgfx:
         .byte 0,64,92,16,0,8,95,95,95,4,0,2,15,1,0,0,0,0,0,0
         .byte 0,0,80,0,0,64,94,95,93,16,0,11,95,7,0,0,0,0,0,0
         .byte 0,0,0,0,0,0,88,95,84,0,2,79,95,31,1,0,0,3,0,0
+        .byte 100,96,48,56,0,120,123,119,116,0,41,112,112,38,0,0,0,0,0,0
+        .byte 16,0,0,64,0,66,78,29,17,0,71,3,3,27,0,0,3,3,0,0
+        .byte 0,0,0,0,0,9,88,84,6,0,30,14,13,77,0,2,12,12,1,0
+        .byte 8,16,80,64,4,64,86,95,89,16,2,68,80,24,1,0,0,0,0,0
+        .byte 64,0,0,0,16,0,25,95,70,0,10,19,3,67,5,0,2,3,1,0
+        .byte 0,0,0,0,0,2,68,92,24,1,72,13,15,14,20,0,9,12,6,0
+        .byte 100,96,48,56,0,120,123,119,116,0,43,127,127,39,0,0,0,0,0,0
+        .byte 16,0,0,64,0,66,78,29,17,0,79,95,95,31,0,0,3,3,0,0
+        .byte 0,0,0,0,0,9,88,84,6,0,94,94,93,93,0,2,15,15,1,0
+        .byte 8,16,80,64,4,64,86,95,89,16,2,79,95,31,1,0,0,0,0,0
+        .byte 64,0,0,0,16,0,25,95,70,0,10,95,95,95,5,0,2,3,1,0
+        .byte 0,0,0,0,0,2,68,92,24,1,72,93,95,94,20,0,11,15,7,0
+        .byte 100,96,48,56,0,120,123,119,116,0,43,33,34,39,0,0,0,0,0,0
+        .byte 16,0,0,64,0,66,78,29,17,0,79,7,11,31,0,0,0,0,0,0
+        .byte 0,0,0,0,0,9,88,84,6,0,94,30,77,93,0,2,0,0,1,0
+        .byte 8,16,80,64,4,64,86,95,89,16,2,7,0,11,1,0,0,0,0,0
+        .byte 64,0,0,0,16,0,25,95,70,0,10,31,3,79,5,0,0,0,0,0
+        .byte 0,0,0,0,0,2,68,92,24,1,72,93,15,94,20,0,1,0,2,0
+        .byte 100,96,48,56,0,120,123,119,116,0,32,32,32,32,0,0,0,0,0,0
+        .byte 16,0,0,64,0,66,78,29,17,0,3,3,3,3,0,0,0,0,0,0
+        .byte 0,0,0,0,0,9,88,84,6,0,14,14,13,13,0,0,0,0,0,0
+        .byte 8,16,80,64,4,64,86,95,89,16,0,0,0,0,0,0,0,0,0,0
+        .byte 64,0,0,0,16,0,25,95,70,0,2,3,3,3,1,0,0,0,0,0
+        .byte 0,0,0,0,0,2,68,92,24,1,8,13,15,14,4,0,0,0,0,0
+        .byte 100,96,48,56,0,32,107,55,32,0,32,32,32,32,0,0,0,0,0,0
+        .byte 16,0,0,64,0,2,78,29,1,0,0,2,1,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,9,88,84,6,0,0,10,5,0,0,0,0,0,0,0
+        .byte 8,16,80,64,4,0,2,95,1,0,0,0,0,0,0,0,0,0,0,0
+        .byte 64,0,0,0,16,0,9,95,6,0,0,0,3,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,2,68,92,24,1,0,0,15,0,0,0,0,0,0,0
+        .byte 32,32,32,32,0,32,42,37,32,0,32,32,32,32,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,72,20,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,64,16,0,0,0,2,1,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,92,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,80,0,0,0,0,3,0,0,0,0,0,0,0
+        .byte 40,52,96,36,0,44,52,104,44,0,54,106,32,101,0,0,0,0,0,0
+        .byte 64,16,0,16,0,80,17,66,80,0,24,73,2,20,0,1,2,0,2,0
+        .byte 0,0,0,0,0,2,5,8,1,0,67,69,10,19,0,5,10,0,9,0
+        .byte 0,76,0,24,0,8,76,0,28,4,72,1,21,10,16,0,0,0,0,0
+        .byte 0,80,0,64,0,64,82,0,81,16,64,6,20,73,0,2,0,1,0,1
+        .byte 0,0,0,0,0,0,11,0,6,0,2,27,16,71,1,10,0,5,2,4
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 frmlst:
         .byte 0,3
         .byte 3,2
         .byte 5,2
         .byte 7,2
         .byte 9,2
-        .byte 11,2,13,0
+        .byte 11,2
+        .byte 13,8,21,0
 scdat:
-        .word 509
-        .byte 255,1,40,2,2,255,0,7,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9,1,1,0,255,3,6,0,0,1
-        .byte 0,3,0,0,1,0,0,0,1,0,255,3,5,0,0,1,0,255,3,6,0,0,1,1,0,3,255,0,7,1,0,3,0,0
-        .byte 1,0,0,0,1,0,3,255,0,6,1,0,3,255,0,7,1,1,0,3,0,0,255,1,6,0,3,0,0,255,1,5,0
-        .byte 3,0,0,255,1,5,0,3,0,0,255,1,7,2,3,255,0,9,3,2,255,0,7,3,2,255,0,7,3,2,0,0,0
-        .byte 2,2,0,1,1,0,255,3,34,0,0,1,1,0,3,255,0,9,3,255,0,12,3,255,0,9,3,0,0,1,1,0,3
-        .byte 0,0,255,1,6,0,3,0,0,255,1,9,0,3,0,0,255,1,6,0,3,0,0,1,1,2,3,255,0,5,2,2,1
-        .byte 0,3,255,0,12,3,0,0,1,0,2,2,0,0,0,3,2,0,1,1,0,255,3,6,0,0,1,0,255,3,14,0,0
-        .byte 1,0,255,3,6,0,0,1,1,255,0,6,3,0,0,1,255,0,17,1,0,3,255,0,7,255,1,7,0,3,0,0,255,1,19
-        .byte 0,3,0,0,255,1,6,255,0,7,3,2,255,0,21,3,2,255,0,8,255,3,15,255,0,5,255,3,16,255,0,9,3
-        .byte 255,0,22,3,255,0,8,255,1,6,0,3,0,0,255,1,19,0,3,0,0,255,1,7,255,0,4,1,0,3,255,0,7
-        .byte 1,255,0,7,1,255,0,6,3,0,0,1,255,0,4,1,1,0,3,0,0,1,0,255,3,6,0,0,1,255,0,7,1
-        .byte 0,255,3,6,0,0,1,0,3,0,0,1,1,0,3,0,0,1,0,3,255,0,4,3,0,0,1,255,0,7,1,0,3
-        .byte 255,0,4,3,0,0,1,0,3,0,0,1,1,0,3,0,0,1,0,3,0,0,1,0,3,0,0,255,1,9,0,3,0,0
-        .byte 1,0,3,0,0,1,0,3,0,0,1,1,0,3,255,0,4,3,0,0,1,0,3,255,0,12,3,0,0,1,0,3,255,0,4
-        .byte 3,0,0,1,1,0,255,3,6,0,0,1,0,255,3,14,0,0,1,0,255,3,6,0,0,1,1,255,0,9,1,255,0,17
-        .byte 1,255,0,9,255,1,40
+        .word 505
+        .byte 255,1,40,255,0,9,1,255,0,4,1,0,0,0,1,255,0,8,1,255,0,9,1,1,0,255,3,7,0,1,0,3,0,0
+        .byte 1,0,0,0,1,0,255,3,5,0,0,1,0,255,3,7,0,1,1,0,3,255,0,7,1,0,3,0,0,1,0,0,0
+        .byte 1,0,3,255,0,6,1,0,3,255,0,7,1,1,0,3,0,0,255,1,6,0,3,0,0,255,1,5,0,3,0,0,255,1,5
+        .byte 0,3,0,0,255,1,7,2,3,255,0,9,3,2,255,0,7,3,2,255,0,7,3,2,0,0,0,2,2,0,1,1,0
+        .byte 255,3,34,0,0,1,1,0,3,255,0,9,3,255,0,12,3,255,0,9,3,0,0,1,1,0,3,0,0,255,1,6,0
+        .byte 3,0,0,255,1,9,0,3,0,0,255,1,6,0,3,0,0,1,1,2,3,255,0,5,2,2,1,0,3,255,0,12,3
+        .byte 0,0,1,0,2,2,0,0,0,3,2,0,1,1,0,255,3,6,0,0,1,0,255,3,14,0,0,1,0,255,3,6,0,0
+        .byte 1,1,255,0,6,3,0,0,1,255,0,17,1,0,3,255,0,7,255,1,7,0,3,0,0,255,1,19,0,3,0,0,255,1,6
+        .byte 255,0,7,3,2,255,0,21,3,2,255,0,7,255,3,16,255,0,5,255,3,18,255,0,7,3,255,0,22,3,255,0,8
+        .byte 255,1,6,0,3,0,0,255,1,19,0,3,0,0,255,1,7,255,0,4,1,0,3,255,0,7,1,255,0,7,1,255,0,6
+        .byte 3,0,0,1,255,0,4,1,1,0,3,0,0,1,0,255,3,6,0,0,1,255,0,7,1,0,255,3,6,0,0,1,0
+        .byte 3,0,0,1,1,0,3,0,0,1,0,3,255,0,4,3,0,0,1,255,0,7,1,0,3,255,0,4,3,0,0,1,0
+        .byte 3,0,0,1,1,0,3,0,0,1,0,3,0,0,1,0,3,0,0,255,1,9,0,3,0,0,1,0,3,0,0,1,0
+        .byte 3,0,0,1,1,0,3,255,0,4,3,0,0,1,0,3,255,0,12,3,0,0,1,0,3,255,0,4,3,0,0,1,1
+        .byte 0,255,3,6,0,0,1,0,255,3,14,0,0,1,0,255,3,6,0,0,1,1,255,0,9,1,255,0,17,1,255,0,9
+        .byte 255,1,40
 numsc:
         .byte 1
 nmedat:
-        .byte 0,0,39,36,1,1,27,36,255
+        .byte 0,0,39,36,1,1,15,36,1,1,63,36,255
 NUMOBJ = 1
 objdta:
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40,80,0,40,80

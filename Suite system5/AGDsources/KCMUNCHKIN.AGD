@@ -182,10 +182,45 @@ DEFINESPRITE 2
 	110,127,127,61,
 	32,43,39,32
 
+; Player kill
+DEFINESPRITE 8
+
+100,96,48,56,
+120,123,119,116,
+41,112,112,38
+
+100,96,48,56,
+120,123,119,116,
+43,127,127,39
+
+100,96,48,56,
+120,123,119,116,
+43,33,34,39
+
+100,96,48,56,
+120,123,119,116,
+32,32,32,32
+
+100,96,48,56,
+32,107,55,32,
+32,32,32,32
+
+32,32,32,32,
+32,42,37,32,
+32,32,32,32
+
+40,52,96,36,
+44,52,104,44,
+54,106,32,101
+
+0,0,0,0
+0,0,0,0
+0,0,0,0
+
 DEFINESCREEN
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-	1,2,2,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1
-	1,0,3,3,3,3,3,3,0,0,1,0,3,0,0,1,0,0,0,1,0,3,3,3,3,3,0,0,1,0,3,3,3,3,3,3,0,0,1
+	1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1
+	1,0,3,3,3,3,3,3,3,0,1,0,3,0,0,1,0,0,0,1,0,3,3,3,3,3,0,0,1,0,3,3,3,3,3,3,3,0,1
 	1,0,3,0,0,0,0,0,0,0,1,0,3,0,0,1,0,0,0,1,0,3,0,0,0,0,0,0,1,0,3,0,0,0,0,0,0,0,1
 	1,0,3,0,0,1,1,1,1,1,1,0,3,0,0,1,1,1,1,1,0,3,0,0,1,1,1,1,1,0,3,0,0,1,1,1,1,1,1
 	1,2,3,0,0,0,0,0,0,0,0,0,3,2,0,0,0,0,0,0,0,3,2,0,0,0,0,0,0,0,3,2,0,0,0,2,2,0,1
@@ -197,7 +232,7 @@ DEFINESCREEN
 	1,0,0,0,0,0,0,3,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,3,0,0,0,0,0,0,0,1
 	1,1,1,1,1,1,0,3,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,3,0,0,1,1,1,1,1,1
 	0,0,0,0,0,0,0,3,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,2,0,0,0,0,0,0,0
-	0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0
+	3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
 	0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0
 	1,1,1,1,1,1,0,3,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,3,0,0,1,1,1,1,1,1
 	1,0,0,0,0,1,0,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,3,0,0,1,0,0,0,0,1
@@ -210,7 +245,8 @@ DEFINESCREEN
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 
 SPRITEPOSITION 0,0,39,36
-SPRITEPOSITION 1,1,27,36
+SPRITEPOSITION 1,1,15,36
+SPRITEPOSITION 1,1,63,36
 
 
 DEFINEOBJECT 0,0,40,80
@@ -219,132 +255,265 @@ DEFINEOBJECT 0,0,40,80
          0,0,0,0,0,0,0,0
          0,0,0,0,0,0,0,0
 
+;------------------------------------------------------------------
+; Pacman
+;------------------------------------------------------------------
+
 EVENT PLAYER
 
-GETBLOCKS
+ GETBLOCKS		; Check if hit collectable block
 
-ADD 1 TO SETTINGA
-;IF SETTINGA <> 40
-;  EXIT
-;ENDIF
+ LET M = 0		; Reset animation flag
 
-;LET SETTINGA 0
- LET M = 0
-
-; LET IMAGE 0
-
- IF KEY UP
-  LET IMAGE 4
-  LET M = 1
-  IF CANGOUP
-    SPRITEUP
+ IF KEY UP		; Check if key up pressed
+  LET IMAGE 4		; If yes, sprite image up	
+  LET M = 1		; Set animation flag
+  IF CANGOUP		; Check if cangoup
+    SPRITEUP		; If yes, move up
   ENDIF
  ENDIF
 
- IF KEY DOWN
-  LET IMAGE 5
-  LET M = 1
-  IF CANGODOWN
-    SPRITEDOWN
+ IF KEY DOWN		; Check if key down pressed
+  LET IMAGE 5		; If yes, sprite image down
+  LET M = 1		; Set animation flag
+  IF CANGODOWN		; Check if cango down
+    SPRITEDOWN		; If yes, move down
   ENDIF
  ENDIF
 
- IF KEY LEFT
-  LET IMAGE 3
-  LET M = 1
-  IF CANGOLEFT
-   IF X > 4
-     SPRITELEFT
+ IF KEY LEFT		; Check if key left pressed
+  LET IMAGE 3		; If yes, sprite left
+  LET M = 1		; Set animation flag
+  IF CANGOLEFT		; Check if cangoleft
+   SPRITELEFT		; If yes move left
+   IF X 2		; Check for entering tunnel left
+     LET X 71		; If yes, display srite in tunnel right
    ENDIF
   ENDIF
  ENDIF
 
- IF KEY RIGHT
-  LET IMAGE 2
-  LET M = 1
-  IF CANGORIGHT
-   IF X < 72
-     SPRITERIGHT
+ IF KEY RIGHT		; Check if key right pressed
+  LET IMAGE 2		; If yes, sprite right
+  LET M = 1		; Set animation flag
+  IF CANGORIGHT		; Check if cangoright
+   SPRITERIGHT		; If yes move right
+   IF X 72		; Check for entering tunnel right
+     LET X 3		; If yes display sprite in tunnel left
    ENDIF
   ENDIF
  ENDIF
 
- IF M > 0
-  ANIMATE
+ IF M > 0		; Check animation flag
+  ANIMATE		; If set animate
  ENDIF
- SPRITEINK 7
 
  IF COLLISION 1
-  AT 24,17
-  PRINT "HIT:1"
- ELSE
-  AT 24,17
-  PRINT "HIT: "
+  SPAWN 2 6
+  REMOVE
+  LET Q 1
  ENDIF
+
+;------------------------------------------------------------------
+; Ghost
+;------------------------------------------------------------------
 
 EVENT SPRITETYPE1
 
-; ADD 1 TO SETTINGA
- ANIMATE
-; IF SETTINGA 30
-;  LET SETTINGA 0
+ IF Q 1
+  REMOVE
+  EXIT
+ ENDIF
 
-  IF C 0
-    IF CUSTOM
-     GETRANDOM 3
-     LET DIRECTION RND
-    ENDIF
-    LET C 1
-  ELSE
-   LET C 0
+ LET S 0		; Cangoleft flag
+ LET T 0		; Cangoright flag
+ LET U 0		; Cangoup flag
+ LET V 0		; Cangodown flag
+
+ LET M X		; Calculate nearest crossing location (M,N)
+ SUBTRACT 4 FROM M
+ DIVIDE M BY 10
+ MULTIPLY M BY 10
+ ADD 4 TO M
+
+ LET N Y
+ SUBTRACT 3 FROM N
+ DIVIDE N BY 12
+ MULTIPLY N BY 12
+ ADD 3 TO N
+
+ IF CANGOLEFT		; Check if cangoleft
+  LET S 1		; If yes, set cangoleft flag
+ ENDIF
+
+ IF CANGORIGHT		; Check if cangoright
+  LET T 1		; If yes, set cangoright flag
+ ENDIF
+
+ IF CANGOUP		; Check if cangoup
+;  IF Y > 2
+   LET U 1		; If yes, set cangoup flag
+;  ENDIF
+ ENDIF
+
+ IF CANGODOWN		; Check if cangodown
+;  IF Y < 63
+   LET V 1		; If yes, set cangodown flag
+;  ENDIF
+ ENDIF
+
+ LET M 0		; Reset on crossing flag
+
+ IF DIRECTION LEFT	; If moving left
+  IF CANGOUP		; If cangoup
+   LET M 1		; Set on crossing flag
   ENDIF
+  IF CANGODOWN		; If cangodown
+   LET M 1		; Set on crossing flag
+  ENDIF
+ ENDIF
 
-  IF DIRECTION 0
-   IF CANGOLEFT
-    IF X > 4
-     SPRITELEFT
-    ELSE
-     DIRECTION 1
-    ENDIF
+ IF DIRECTION RIGHT	; If moving right
+  IF CANGOUP		; If cangoup
+   LET M 1		; Set on crossing flag
+  ENDIF
+  IF CANGODOWN		; If cangodown
+   LET M 1		; Set on crossing flag
+  ENDIF
+ ENDIF
+
+ IF DIRECTION UP	; If moving up
+  IF CANGOLEFT		; If cangoleft
+   LET M 1		; Set on crossing flag
+  ENDIF
+  IF CANGORIGHT		; If cangoright
+   LET M 1		; Set on crossing flag
+  ENDIF
+ ENDIF
+
+ IF DIRECTION DOWN	; If moving down
+  IF CANGOLEFT		; If cangoleft	
+   LET M 1		; Set on crossing flag
+  ENDIF
+  IF CANGORIGHT		; If cangoright
+   LET M 1		; Set on crossing flag
+  ENDIF
+ ENDIF
+
+ IF M 1			; Check if sprite on junction
+  IF I 0		; Not end of direction
+   IF DIRECTION LEFT
+    LET I 1		; Check going vertical
+   ENDIF
+   IF DIRECTION RIGHT
+    LET I 1		; Check going vertical
+   ENDIF
+   IF DIRECTION UP
+    LET I 2		; Check going horizontal
+   ENDIF
+   IF DIRECTION DOWN
+    LET I 2		; Check going horizontal
+   ENDIF
+  ENDIF
+ ENDIF
+
+ IF I 1			; Handle vertical
+  GETRANDOM 2
+  IF RND 0
+   IF U 1
+    LET DIRECTION UP
    ELSE
-    GETRANDOM 3
-    LET DIRECTION RND
+    IF V 1
+     LET DIRECTION DOWN
+    ENDIF
    ENDIF
   ELSE
-   IF DIRECTION 1
-    IF CANGORIGHT
-     IF X < 70
-      SPRITERIGHT
-     ELSE
-      DIRECTION 0
-     ENDIF
-    ELSE
-     GETRANDOM 3
-     LET DIRECTION RND
-    ENDIF
+   IF V 1
+    LET DIRECTION DOWN
    ELSE
-    IF DIRECTION 2
-     IF CANGOUP
-      SPRITEUP
-     ELSE
-      GETRANDOM 3
-      LET DIRECTION RND
-     ENDIF
-    ELSE
-     IF DIRECTION 3
-      IF CANGODOWN
-       SPRITEDOWN
-      ELSE
-       GETRANDOM 3
-       LET DIRECTION RND
-      ENDIF
-     ENDIF
+    IF U 1
+     LET DIRECTION UP
     ENDIF
    ENDIF
   ENDIF
-; ENDIF
+ ENDIF
+
+ IF I 2			; Handle horizontal
+  GETRANDOM 2
+  IF RND 0
+   IF S 1
+    LET DIRECTION LEFT
+   ELSE
+    IF T 1
+     LET DIRECTION RIGHT
+    ENDIF
+   ENDIF
+  ELSE
+   IF T 1
+    LET DIRECTION RIGHT
+   ELSE
+    IF S 1
+     LET DIRECTION LEFT
+    ENDIF
+   ENDIF
+  ENDIF
+ ENDIF
+
+ LET I 0		; Check end of horizontal directions
+ IF DIRECTION LEFT
+  IF S 1
+   SPRITELEFT
+   IF X 2
+    LET X 71
+   ENDIF
+  ELSE
+   LET DIRECTION RIGHT	; Handle going vertical
+  ENDIF
+ ENDIF 
+
+ IF DIRECTION RIGHT
+  IF T 1
+   SPRITERIGHT
+   IF X 72
+    LET X 3
+   ENDIF
+  ELSE
+   LET DIRECTION LEFT	; Handle going vertical
+  ENDIF
+ ENDIF
+
+ IF DIRECTION UP	; Check end of vertical directions
+  IF U 1
+   SPRITEUP
+  ELSE
+   LET DIRECTION DOWN	; Handle horizontal
+  ENDIF
+ ENDIF
+
+ IF DIRECTION DOWN
+  IF V 1
+   SPRITEDOWN
+  ELSE
+   LET DIRECTION UP	; Handle horizontal
+  ENDIF
+ ENDIF
+
+ ANIMATE SLOW
+
+;------------------------------------------------------------------
+;------------------------------------------------------------------
 
 EVENT SPRITETYPE2
+
+ ADD 1 TO SETTINGA
+ IF SETTINGA 2
+  IF FRAME 7
+   REMOVE
+   KILL
+   EXIT
+  ENDIF
+  LET SETTINGA 0
+  ANIMATE
+ ENDIF
 
 EVENT SPRITETYPE3
 
@@ -360,49 +529,51 @@ EVENT SPRITETYPE8
 
 EVENT INITSPRITE
  IF TYPE 1
-  LET DIRECTION RIGHT
+  LET DIRECTION LEFT
  ENDIF
  IF TYPE 2
-  LET DIRECTION DOWN
+  LET FRAME 0
  ENDIF
 
 EVENT MAINLOOP1
- DELAY 25
+ INK 1
  AT 0,1:PRINT "SCORE: "
  AT 0,8:SHOWSCORE
+ AT 0,30:PRINT "LIVES: "
+ AT 0,37:DISPLAY LIVES
 
 EVENT MAINLOOP2
 
 EVENT INTROMENU
-PAPER 5
-CLS
-DELAY 200
+ PAPER 5
+ CLS
+ LET Q =0
+ LET LIVES 3
 
 EVENT GAMEINIT
 
 EVENT RESTARTSCREEN
+ PAPER 5
  CLS
 
 EVENT FELLTOOFAR
 
 EVENT KILLPLAYER
+ SUBTRACT 1 FROM LIVES
+ LET Q =0
+ DELAY 5
 
 EVENT LOSTGAME
  PRINTMODE 1
- LET LINE = 8
- LET COLUMN = 13
- COLOUR 87
- PRINT " GAME "
- ADD 2 TO LINE
- LET COLUMN = 13
- COLOUR 86
- PRINT " OVER "
- WAITKEY
+ INK 1
+ AT 13,15:PRINT "GAME OVER"
+ PRINTMODE 0
+ DELAY 50
+ LET LIVES 0
 
 EVENT COMPLETEDGAME
 
 EVENT NEWHIGHSCORE
- COLOUR 79
  LET LINE = 14
  LET COLUMN = 8
  PRINT " NEW HIGH SCORE "

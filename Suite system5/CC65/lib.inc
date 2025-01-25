@@ -2,9 +2,13 @@
 ; System 5 depending variables and routines
 ;----------------------------------------------------------------------
 
+; Flags
+
+	real		= 0		; 0=emulator, 1=real system5
+
 ; Global variables
 
-	t_red		= 1	; Text colour definition filters
+	t_red		= 1		; Text colour definition filters
 	t_green		= 2
 	t_yellow	= 3
 	t_blue		= 4
@@ -12,7 +16,7 @@
 	t_cyan		= 6
 	t_white		= 7
 
-	g_red		= 17	; Graphics colour definition filters
+	g_red		= 17		; Graphics colour definition filters
 	g_green		= 18
 	g_yellow	= 19
 	g_blue		= 20
@@ -22,6 +26,12 @@
 
 	ScrWidth	= 40
 	ScrHeight	= 25
+
+.if real=1
+	IRQtime		= 20000
+.else
+	IRQtime		= 40000
+.endif
 
 ; System constants
 
@@ -154,9 +164,9 @@ loops:
 	lda #>irq_handler
 	sta IRQVEC+1
 
-	lda #<30000		; Interrupt at 50Hz
+	lda #<IRQtime		; Interrupt at 25Hz
 	sta Timer1_Low
-	lda #>30000
+	lda #>IRQtime
 	sta Timer1_High
 	lda #%01000000
 	sta ACR
@@ -322,8 +332,12 @@ joy2:
 
 ktest:
 	sta tmp
-	lda PORT_A
+	bit PORT_A
+.if real=1
+	bpl not_pressed
+.else
 	bmi not_pressed	; BUG MAME, bit 7 not set ....
+.endif
 	lda PORT_A
 	cmp tmp
 	beq pressed

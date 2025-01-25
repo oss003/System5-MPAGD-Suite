@@ -3583,6 +3583,8 @@ gtblk:
 .endif
 
 ;--------------------------------------------------------------
+; BUG >>>>> NOT WORKING OK >>>>>>>>>
+;--------------------------------------------------------------
 ; Touched deadly block check.
 ; returns with DEADLY (must be non-zero) in accumulator if true.
 ;
@@ -3593,8 +3595,6 @@ gtblk:
 ;  A  = 0 is ok, A=5 is not ok
 ;--------------------------------------------------------------
 
-; Calculate map address from dispx,dispy
-
 tded:
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
@@ -3602,67 +3602,325 @@ tded:
 	iny
 	lda (z80_ix),y 		; x coordinate.
 	sta dispx		; coords in dispx,dispy.
-	jsr tstbl		; get map address in bufaddr.
+	jsr tstbl		; get map address.
 
-; Set variables
-
-	lda #0
-	sta z80_c		; reset x-stradding skip flag
-
-	lda #4			; Set nr of sprite columns
-	sta rcol
-	lda dispx
-	and #1
-	bne :+
-	dec rcol
-	inc z80_c		; set x-stradding skip flag
-:
-	lda rcol
-	sta z80_e
-
-	lda #3			; Set nr of sprite rows
-	sta rrow
-	ldy dispy
-	lda V_SPR_PTR,y
-	bne :+
-	dec rrow
-:
-	ldx #0
-vspr_loop:
-	lda z80_e
-	sta rcol
-hspr_loop:
-	ldy spr_ptr,x
-	lda (bufaddr),y
-	cmp z80_b
-	beq end_sprloop
-	inx
-	dec rcol
-	bpl hspr_loop
-;	inx
-	ldy z80_c		; Test x-stradding skip flag
-	beq :+			; If reset, no skipping
-	inx			; If set, skip 1 byte
-:
-	dec rrow
-	bpl vspr_loop
-end_sprloop:
 	pha
-	clc
-	tya
-	adc bufaddr
+	lda #ScrWidth-3		; default distance to next line down.
+	sta z80_e
+	pla
+
+; Check block (0,0)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b		; is this the required block?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (0,1)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b 		; is this deadly/custom?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (0,2)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b 		; is this deadly/custom?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (0,3)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b 		; is this deadly/custom?
+	bne :+
+	rts			; yes.
+:
+
+; Check x-stradding
+
+	lda dispx		; horizontal position.
+	sta z80_c 		; store column in c register.
+	and #1			; is it straddling cells?
+	bne :+
+	jmp tded0		; no.
+:
+	inc bufaddr 		; last cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (0,4)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this the block?
+	bne :+
+	rts			; yes.
+:
+;	dec z80_e		; one less cell to next row down.
+
+; Calculate address next sprite row
+
+tded0:
+	clc 			; point to next row.
+	lda bufaddr
+	adc z80_e
 	sta bufaddr
 	bcc :+
 	inc bufaddr+1
 :
-	pla
-	rts
 
-spr_ptr:
-	.byte   0,  1,  2,  3,  4
-	.byte  40, 41, 42, 43, 44
-	.byte  80, 81, 82, 83, 84
-	.byte 120,121,122,123,124
+; Check block (1,0)
+
+	ldy #0
+	lda (bufaddr),y		; fetch left cell block.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (1,1)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (1,2)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (1,3)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+
+; Check x-stradding
+
+	lda z80_c		; horizontal position.
+	and #1			; is it straddling cells?
+	bne :+
+	jmp tded1 		; no.
+:
+	inc bufaddr		; last cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (1,4)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+
+; Calculate address next sprite row
+
+tded1:
+	clc 			; point to next row.
+	lda bufaddr
+	adc z80_e
+	sta bufaddr
+	bcc :+
+	inc bufaddr+1
+:
+
+; Check block (2,0)
+
+	ldy #0
+	lda (bufaddr),y		; fetch left cell block.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (2,1)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (2,2)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr 		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (2,3)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+
+; Check x-stradding
+
+	lda z80_c		; horizontal position.
+	and #1			; is it straddling cells?
+	bne :+
+	jmp tded2 		; no.
+:
+	inc bufaddr		; last cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (2,4)
+
+	ldy #0
+	lda (bufaddr),y		; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+
+; Calculate address next spriterow
+
+tded2:
+	ldy dispy		; vertical position.
+	lda V_SPR_PTR,y		; is it straddling cells?
+	bne :+
+	rts			; no, job done.
+:
+	clc			; point to next row.
+	lda bufaddr
+	adc z80_e
+	sta bufaddr
+	bcc :+
+	inc bufaddr+1
+:
+
+; Check block (3,0)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch left cell block.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (3,1)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (3,2)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+	inc bufaddr		; next cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (3,3)
+
+	ldy #0
+	lda (bufaddr),y 	; fetch type.
+	cmp z80_b		; is this fatal?
+	bne :+
+	rts			; yes.
+:
+
+; Check x-stradding
+
+	lda z80_c		; horizontal position.
+	and #1			; is it straddling cells?
+	bne :+
+	rts			; no.
+:
+	inc bufaddr		; last cell.
+	bne :+
+	inc bufaddr+1
+:
+
+; Check block (3,4)
+
+	ldy #0
+	lda (bufaddr),y		; fetch final type.
+	rts 			; return with final type in accumulator.
 
 ;---------------------------------------------------
 ; Fetch block type at (dispx, dispy).
@@ -5755,288 +6013,3 @@ fcolour:	.byte t_white
 bcolour:	.byte g_white
 
 ; Everything below here will be generated by the editors.
-
-        rts
-WINDOWTOP = 1
-WINDOWLFT = 1
-WINDOWHGT = 22
-WINDOWWID = 30 ;b
-MAPWID = 3
-        .byte 255,255,255
-mapdat:
-        .byte 255,0,255
-        .byte 255,255,255
-stmap:  .byte 1
-
-evnt00:
-        rts
-evnt01:
-        rts
-evnt02:
-        rts
-evnt03:
-        rts
-evnt04:
-        rts
-evnt05:
-        rts
-evnt06:
-        rts
-evnt07:
-        rts
-evnt08:
-        rts
-evnt09:
-        rts
-evnt10:
-        lda #0
-        cmp varz
-        beq *+5
-        jmp k00163
-        lda #1		; PRINTMODE
-        sta prtmod
-        lda #1		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #0		; PRINT
-        jsr dmsg
-        lda #0		; PRINTMODE
-        sta prtmod
-        lda #4		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #1		; PRINT
-        jsr dmsg
-        lda #6		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #2		; PRINT
-        jsr dmsg
-        lda #8		; AT
-        sta chary
-        lda #1
-        sta charx
-        lda #3		; PRINT
-        jsr dmsg
-        lda #1
-        sta varz
-k00163: lda #2
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda #4		; AT
-        sta chary
-        lda #18
-        sta charx
-        lda varrnd	; DISPLAY
-        jsr disply
-        lda #4		; PRINT
-        jsr dmsg
-        lda #10
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda #6		; AT
-        sta chary
-        lda #18
-        sta charx
-        lda #10
-        sta z80_c
-        lda varrnd
-        clc
-        adc z80_c
-        sta varrnd
-        lda varrnd	; DISPLAY
-        jsr disply
-        lda #5		; PRINT
-        jsr dmsg
-        lda #255
-        sta z80_d	; GETRANDOM
-        jsr random
-        sta z80_h
-        jsr imul
-        lda z80_h
-        sta varrnd
-        lda #8		; AT
-        sta chary
-        lda #18
-        sta charx
-        lda varrnd	; DISPLAY
-        jsr disply
-        lda #6		; PRINT
-        jsr dmsg
-        lda varrnd	; PLOT
-        sta dispx
-        lda #180
-        sta dispy
-        jsr plot0
-
-        rts
-evnt11:
-        rts
-evnt12:
-        jsr cls		; CLS
-        lda #0
-        sta varz
-        rts
-evnt13:
-        rts
-evnt14:
-        rts
-evnt15:
-        rts
-evnt16:
-        rts
-evnt17:
-        rts
-evnt18:
-        rts
-evnt19:
-        rts
-evnt20:
-        lda #1	; GET
-        jsr getob
-        rts
-ptcusr: rts
-msgdat:
-        .byte "RANDOM TEST",186
-        .byte "GETRANDOM  0- 1:",160
-        .byte "GETRANDOM 10-19:",160
-        .byte "GETRANDOM 0-255:",160
-        .byte " ",160
-        .byte " ",160
-        .byte " ",160
-nummsg:
-        .byte 7
-chgfx:
-        .byte 0,0
-bprop:
-        .byte 0
-sprgfx:
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-frmlst:
-        .byte 0,1,1,0
-scdat:
-        .word 9
-        .byte 255,0,0,255,0,0,255,0,148
-numsc:
-        .byte 1
-nmedat:
-        .byte 66,0,88,128,255
-NUMOBJ = 1
-objdta:
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,32,0,160,32
-font:
-        .byte 0,0,0,0,0,0,0,0
-        .byte 0,48,48,48,48,0,48,0
-        .byte 0,108,108,0,0,0,0,0
-        .byte 0,108,254,108,108,254,108,0
-        .byte 0,24,126,120,126,30,126,24
-        .byte 0,230,236,24,48,110,206,0
-        .byte 0,48,120,48,126,204,126,0
-        .byte 0,24,48,0,0,0,0,0
-        .byte 0,12,24,24,24,24,12,0
-        .byte 0,96,48,48,48,48,96,0
-        .byte 0,0,60,24,126,24,60,0
-        .byte 0,0,24,24,126,24,24,0
-        .byte 0,0,0,0,0,24,24,48
-        .byte 0,0,0,0,126,0,0,0
-        .byte 0,0,0,0,0,56,56,0
-        .byte 0,0,6,12,24,48,96,0
-        .byte 0,124,206,222,246,230,124,0
-        .byte 0,56,120,24,24,24,126,0
-        .byte 0,124,198,6,124,192,254,0
-        .byte 0,124,198,28,6,198,124,0
-        .byte 0,24,56,120,216,254,24,0
-        .byte 0,254,192,252,6,198,124,0
-        .byte 0,124,192,252,198,198,124,0
-        .byte 0,254,6,12,24,48,48,0
-        .byte 0,124,198,124,198,198,124,0
-        .byte 0,124,198,198,126,6,124,0
-        .byte 0,0,0,48,0,0,48,0
-        .byte 0,0,48,0,0,48,48,96
-        .byte 0,0,12,24,48,24,12,0
-        .byte 0,0,0,126,0,126,0,0
-        .byte 0,0,48,24,12,24,48,0
-        .byte 0,124,198,12,24,0,24,0
-        .byte 0,124,222,254,254,192,124,0
-        .byte 0,124,198,198,254,198,198,0
-        .byte 0,252,198,252,198,198,252,0
-        .byte 0,124,198,192,192,198,124,0
-        .byte 0,248,204,198,198,204,248,0
-        .byte 0,254,192,252,192,192,254,0
-        .byte 0,254,192,252,192,192,192,0
-        .byte 0,124,198,192,222,198,124,0
-        .byte 0,198,198,254,198,198,198,0
-        .byte 0,126,24,24,24,24,126,0
-        .byte 0,6,6,6,198,198,124,0
-        .byte 0,204,216,240,216,204,198,0
-        .byte 0,192,192,192,192,192,254,0
-        .byte 0,198,238,254,198,198,198,0
-        .byte 0,198,230,246,222,206,198,0
-        .byte 0,124,198,198,198,198,124,0
-        .byte 0,252,198,198,252,192,192,0
-        .byte 0,124,198,198,246,222,124,0
-        .byte 0,252,198,198,252,204,198,0
-        .byte 0,124,192,124,6,198,124,0
-        .byte 0,254,48,48,48,48,48,0
-        .byte 0,198,198,198,198,198,124,0
-        .byte 0,198,198,198,198,108,56,0
-        .byte 0,198,198,198,198,254,108,0
-        .byte 0,198,108,56,56,108,198,0
-        .byte 0,134,204,120,48,48,48,0
-        .byte 0,254,12,24,48,96,254,0
-        .byte 0,30,24,24,24,24,30,0
-        .byte 0,0,192,96,48,24,12,0
-        .byte 0,240,48,48,48,48,240,0
-        .byte 0,48,120,252,48,48,48,0
-        .byte 0,0,0,0,0,0,0,255
-        .byte 0,60,102,248,96,96,254,0
-        .byte 0,0,120,12,124,204,124,0
-        .byte 0,96,96,124,102,102,124,0
-        .byte 0,0,60,96,96,96,60,0
-        .byte 0,12,12,124,204,204,124,0
-        .byte 0,0,120,204,248,192,124,0
-        .byte 0,28,48,56,48,48,48,0
-        .byte 0,0,124,204,204,124,12,120
-        .byte 0,192,192,248,204,204,204,0
-        .byte 0,48,0,112,48,48,120,0
-        .byte 0,12,0,12,12,12,108,56
-        .byte 0,96,120,112,112,120,108,0
-        .byte 0,48,48,48,48,48,28,0
-        .byte 0,0,248,252,252,252,252,0
-        .byte 0,0,248,204,204,204,204,0
-        .byte 0,0,120,204,204,204,120,0
-        .byte 0,0,248,204,204,248,192,192
-        .byte 0,0,124,204,204,124,12,14
-        .byte 0,0,60,96,96,96,96,0
-        .byte 0,0,120,192,120,12,248,0
-        .byte 0,48,120,48,48,48,28,0
-        .byte 0,0,204,204,204,204,120,0
-        .byte 0,0,204,204,120,120,48,0
-        .byte 0,0,204,252,252,252,120,0
-        .byte 0,0,204,120,48,120,204,0
-        .byte 0,0,204,204,204,124,12,120
-        .byte 0,0,252,24,48,96,252,0
-        .byte 0,30,24,112,24,24,30,0
-        .byte 0,24,24,24,24,24,24,0
-        .byte 0,240,48,28,48,48,240,0
-        .byte 0,60,120,0,0,0,0,0
-        .byte 124,198,187,227,227,187,198,124
-jtab:
-        .byte 99
-keys:   .byte 80,79,65,81,32,78,77,49,50,51,52
