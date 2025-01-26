@@ -28,9 +28,9 @@
 	ScrHeight	= 25
 
 .if real=1
-	IRQtime		= 20000
+	IRQtime		= 20000		; 50Hz at 1Mhz clock
 .else
-	IRQtime		= 40000
+	IRQtime		= 40000		; 50Hz at 2Mhz clock
 .endif
 
 ; System constants
@@ -48,6 +48,7 @@
 	Timer2_Low	= VIA1+$8	; Timer 2 low byte
 	Timer2_High	= VIA1+$9	; Timer 2 high byte
 	ACR		= VIA1+$b	; Auxiliary Control Register
+	PCR		= VIA1+$c	; Peripheral Control Register
 	IFR		= VIA1+$d 	; Interrupt Flag Register
 	IER		= VIA1+$e	; Interupt Enable Register
 
@@ -253,11 +254,30 @@ colloop:
 	rts
 
 ;-------------------------------------------------------------
+; Colour background line
+;-------------------------------------------------------------
+
+linecol:
+	tay
+	lda SCADTB_lb,y
+	sta scraddr
+	lda SCADTB_hb,y
+	sta scraddr+1
+	ldy #0
+	lda bcolour		; set background colour
+	sta (scraddr),y
+	iny
+	lda #$1d		; set new background colour
+	sta (scraddr),y
+	rts
+
+
+;-------------------------------------------------------------
 ; Screen synchronisation.
 ;
 ;  - read joystick/keyboard
 ;  - handle sound
-;  - sync framerate with clock
+;  - sync framerate at 25Hz
 ;  - handle shrapnel every even frame
 ;-------------------------------------------------------------
 
@@ -272,7 +292,7 @@ vsync:
 ; Sync framerate to 25 Hz
 
 vsync1:
-	lda frames_passed	; Wait if not at 25Hz
+	lda frames_passed	; Wait 2 frames at 50Hz
 	cmp #2
 	bcc vsync1
 
@@ -314,8 +334,36 @@ sndtyp:	.byte 0
 
 joyinit:
 	rts
+
 joy1:
+	lda PCR			; Switch to joystick
+	and #%11110001
+	ora #%00001110
+
+	lda PORT_A		; Read LRUDF joystick
+	and #$7f
+	sta joyval
+
+	lda PCR			; Switch to keyboard
+	and #%11110001
+	ora #%00001100
+
+	lda keys+5
+	jsr ktest
+	bcs :+
+	lda joyval
+	and #%11011111
+	sta joyval
+:
+	lda keys+6
+	jsr ktest
+	bcs :+
+	lda joyval
+	and #%10111111
+	sta joyval
+:
 	rts
+
 joy2:
 	rts
 
@@ -333,11 +381,11 @@ joy2:
 ktest:
 	sta tmp
 	bit PORT_A
-.if real=1
-	bpl not_pressed
-.else
+;.if real=1
+;	bpl not_pressed
+;.else
 	bmi not_pressed	; BUG MAME, bit 7 not set ....
-.endif
+;.endif
 	lda PORT_A
 	cmp tmp
 	beq pressed

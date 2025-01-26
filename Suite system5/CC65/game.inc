@@ -1,1 +1,1 @@
-.include "testclock.inc" 
+.include "kcmunchkin.inc" 
