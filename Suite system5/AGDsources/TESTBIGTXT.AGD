@@ -110,16 +110,16 @@ DEFINEFONT      0 0 0 0 0 0 0 0
 
 ; Block 0
 
-DEFINEBLOCK     EMPTYBLOCK      ; property
-                0 0 0 0 0 0 0 0 71                                      ; Spectrum.
+DEFINEBLOCK EMPTYBLOCK   $00,1
 
 ; Sprites
 ; First argument defines the number of frames
 ; Then 32 bytes for each sprite frame (Spectrum and Timex) or 80 bytes (CPC).
 
 DEFINESPRITE    1		; number of frames
-                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0         ; Spectrum and Timex.
-                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	100,96,48,56,
+	120,123,119,116,
+	41,115,115,38
 
 ; Screen layouts are best arranged in monospaced rows and columns
 ; DEFINESCREEN is followed by the block numbers that make up the screen
@@ -154,7 +154,7 @@ DEFINESCREEN
 ; SPRITEPOSITION requires 4 numbers for image, type, Y coordinate and X coordinate in that order
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
-SPRITEPOSITION 66,0,88,128
+SPRITEPOSITION 0,0,80,00
 
 
 ; Define objects

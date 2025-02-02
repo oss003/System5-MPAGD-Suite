@@ -258,11 +258,16 @@ colloop:
 ;-------------------------------------------------------------
 
 linecol:
-	tay
-	lda SCADTB_lb,y
-	sta scraddr
-	lda SCADTB_hb,y
-	sta scraddr+1
+	sta dispy
+	lda #0
+	sta dispx
+	jsr gprad
+
+;	tay
+;	lda SCADTB_lb,y
+;	sta scraddr
+;	lda SCADTB_hb,y
+;	sta scraddr+1
 	ldy #0
 	lda bcolour		; set background colour
 	sta (scraddr),y
@@ -336,26 +341,26 @@ joyinit:
 	rts
 
 joy1:
-	lda PCR			; Switch to joystick
-	and #%11110001
-	ora #%00001110
-
-	lda PORT_A		; Read LRUDF joystick
-	and #$7f
-	sta joyval
-
-	lda PCR			; Switch to keyboard
+	lda PCR			; Switch to joystick, CA2=0
 	and #%11110001
 	ora #%00001100
 
-	lda keys+5
+	lda PORT_A		; Read FUDLR joystick
+	and #$7f
+	sta joyval
+
+	lda PCR			; Switch to keyboard, CA2=1
+	and #%11110001
+	ora #%00001110
+
+	lda keys+5		; Check FIRE2
 	jsr ktest
 	bcs :+
 	lda joyval
 	and #%11011111
 	sta joyval
 :
-	lda keys+6
+	lda keys+6		; Check FIRE3
 	jsr ktest
 	bcs :+
 	lda joyval

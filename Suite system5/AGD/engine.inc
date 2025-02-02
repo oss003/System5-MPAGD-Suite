@@ -786,27 +786,17 @@ fdchk:
 	ldy #0
 	sta (bufaddr),y 	; rewrite block type.
 
-	lda dispx		; x=x/8
-	pha
-	lsr a
-	lsr a
-	lsr a
-	sta dispx
+	lda bufaddr		; calculate screenaddr
+	sta scraddr
+	sec
+	lda bufaddr+1
+	sbc #>(MAP-ScreenAddr)	;$d4
+	sta scraddr+1
 
-	lda dispy		; y=y/8
-	pha
-	lsr a
-	lsr a
-	lsr a
-	sta dispy
+	lda #0
+	ldy #0			; erase block on screen
+	sta (scraddr),y
 
-	lda #0 			; block to write.
-	jsr pattr 		; write block.
-
-	pla
-	sta dispy
-	pla
-	sta dispx
 	rts
 .endif
 
@@ -1034,18 +1024,13 @@ chkxy:
 ; bottom: B+15>Y	Y=B	Ok
 
 	lda wnbotx		; point to bottom.
-	clc
-	adc #15
 	ldy #3
 	cmp (z80_ix),y	 	; fetch shrapnel coordinate.
 	bcs :+			; compare with shrapnel x coordinate.
 	jmp kilshr		; off screen, kill shrapnel..
 :
 ; right:  R+15>X	X=R	Ok
-
 	lda wnrgtx		; point to right edge.
-	clc
-	adc #15
 	ldy #5
 	cmp (z80_ix),y	 	; fetch shrapnel coordinate.
 	bcs :+			; compare with window limit.
@@ -1072,7 +1057,7 @@ plot:
 :
 plot0:
 	lda dispx		; which pixel within byte do we
-	and #7			; want to set first?
+	and #1			; want to set first?
 	tay
 	lda dots,y 		; table of small pixel positions.
 	sta z80_e 		; get value.
@@ -1081,6 +1066,7 @@ plot0:
 	ldy #0
 	lda (scraddr),y		; see what's already there.
 	eor z80_e
+	ora #$20
 	sta (scraddr),y 	; put back on screen.
 	rts
 
@@ -1088,7 +1074,8 @@ plot1:
 	jsr scadd 		; screen address.
 	ldy #0
 	lda (scraddr),y 	; fetch byte there.
-	eor #255 		; toggle all bits.
+	eor #12 		; toggle all bits.
+	ora #$20
 	sta (scraddr),y 	; new byte.
 	rts
 
@@ -1196,19 +1183,19 @@ laser:
 	ldy #1
 	lda (z80_ix),y 		; direction.
 	ror a 			; left or right?
-	bcs :+
+	bcc :+
 	jmp laserl		; move left.
 :
 ; Laser right
 
-	lda #8			; distance to travel.
+	lda #2			; distance to travel.
 	sta z80_b
 	jmp laserm		; move laser.
 
 ; Laser left
 
 laserl:
-	lda #248		; distance to travel.
+	lda #254		; distance to travel.
 	sta z80_b
 laserm:
 	ldy #5
@@ -1241,7 +1228,7 @@ laserm:
 ; Dots mask
 ;----------------------------------------------------
 
-dots:	.byte 128,64,32,16,8,4,2,1
+dots:	.byte 2,1
 
 
 ;----------------------------------------------------
@@ -1268,13 +1255,13 @@ plotde:
 ;----------------------------------------------------
 
 shoot:
-	sta z80_c		; store direction in c register.
+	sta z80_c		; store type in c register.
 	ldy #8
 	lda (z80_ix),y 		; y coordinate.
 	clc
 shoot1:
-	adc #(SPR_HGT/2-1)	; down 7 pixels.
-	sta z80_l 		; puty y coordinate in l.
+	adc #(SPR_HGT/2)	; down 4 pixels.
+	sta z80_l 		; y coordinate in l.
 
 	ldy #9
 	lda (z80_ix),y 		; x coordinate in h.
@@ -1291,7 +1278,7 @@ shoot1:
 :
 	lda #0
 	ldy #0
-	sta (z80_ix),y 		; set up a laser.
+	sta (z80_ix),y 		; set up type laser.
 
 	lda z80_c
 	ldy #1
@@ -1302,19 +1289,19 @@ shoot1:
 	sta (z80_ix),y		; set y coordinate.
 
 	ror z80_c		; check direction we want.
-	bcc :+
+	bcs :+
 	jmp shootr		; shoot right.
 :
 	lda z80_h		; X position.
 shoot0:
-	and #248		; align on character boundary.
+	and #$fe		; align on character boundary.
 	ldy #5
 	sta (z80_ix),y		; set x coordinate.
 	jmp vapou0 		; draw first image.
 shootr:
 	lda z80_h		; x position.
 	clc
-	adc #15			; look right.
+	adc #SPR_WID-1		; look right.
 	jmp shoot0		; align and continue.
 
 ;----------------------------------------------------
@@ -3508,8 +3495,8 @@ plchk0:
 	lda #0			; report as ok
 	rts
 plchkx:
-	lda dispy		; y coordinate.
-	and #3			; position straddling blocks.
+	ldy dispy		; y coordinate.
+	lda V_SPR_PTR,y		; position straddling blocks.
 	beq lrchkx		; on platform, deny movement.
 	jmp plchk0
 
@@ -3960,6 +3947,7 @@ bmsg3:
 	inc dispy
 	jsr dscor2
 	dec dispy
+	dec chary
 	rts
 bmsg2:
 	lda #0
@@ -4022,8 +4010,19 @@ achar:
 
 nexpos:
 	inc dispx		; move along one position.
+	lda prtmod
+	beq skip
 	lda dispx 		; get coordinate.
-;	and #31
+	cmp #40
+	bne skip
+	inc dispy
+	inc dispy
+	lda #1
+	sta dispx
+	lda #$d
+	jsr bchar
+skip:
+	lda dispx
 	rts 			; return with status in zero flag.
 
 ;-------------------------------------------------
