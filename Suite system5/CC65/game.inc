@@ -1,1 +1,1 @@
-.include "testshoot.inc" 
+.include "testdig.inc" 

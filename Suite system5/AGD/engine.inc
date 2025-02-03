@@ -724,7 +724,7 @@ redraw:
 .endif
 numsp0:
 	lda #NUMSPR		; sprites to draw.
-	sta tmp
+	sta tmpbyte
 
 	lda #<sprtab		; sprite table.
 	sta z80_x
@@ -750,7 +750,7 @@ redrw1:
 	bcc :+
 	inc z80_i
 :
-	dec tmp			; repeat for remaining sprites.
+	dec tmpbyte			; repeat for remaining sprites.
 	bne redrw0
 rpblc1:
 ;	jsr dshrp		; redraw shrapnel.
@@ -765,6 +765,7 @@ rpblc1:
 
 	rts
 
+tmpbyte:	.byte 0
 ;----------------------------------------------------------------------
 ; Atomic palette is static 
 ;----------------------------------------------------------------------
@@ -1691,7 +1692,7 @@ lcolh:
 	sec
 	ldy #9
 	sbc (z80_ix),y 		; subtract sprite y.
-	cmp #16			; within range?
+	cmp #SPR_WID		; within range?
 	bcs :+
 	jmp lcol4 		; yes, collision occurred.
 :
@@ -3320,7 +3321,7 @@ cangd:
 	lda (z80_ix),y		; y coordinate.
 	clc
 numsp3:
-	adc #SPR_HGT 		; look down 16 pixels.
+	adc #SPR_HGT 		; look down 9 pixels.
 	sta dispy		; coords in dispx,dispy.
 	jsr tstbl 		; get map address.
 	jsr plchk 		; block, platform check.
@@ -3658,17 +3659,17 @@ tstbl:
 	lda dispy 		; fetch y coord.
 	tax
 
-	lda dispx		; x/8
+	lda dispx		; x/2
 	lsr a
 	sta charx
 
-	clc
+	clc			; Get offset address
 	lda SCADTB_lb,x
 	adc charx
 	sta bufaddr
 
 	lda SCADTB_hb,x
-	adc #(>MAP->ScreenAddr)
+	adc #(>MAP->ScreenAddr)	; Get map address
 	sta bufaddr+1
 	
 	ldy #0
@@ -4666,7 +4667,7 @@ sktyp1:
 	lda skptr+1
 	adc #0
 	sta z80_h
-	dec sktptr					; one less iteration.
+	dec sktptr				; one less iteration.
 	bne sktyp0				; keep going until we find a slot.
 	lda #0					; default to ROM address - no sprite.
 	sta z80_l
@@ -4676,9 +4677,6 @@ sktyp1:
 
 	clc					; don't return with zero flag set.
 	rts 					; didn't find one.
-
-;skptr:	.word 0					; search pointer.
-;sktptr:	.byte 0
 
 coltyp:
 	ldy #0
@@ -4718,11 +4716,11 @@ colc1a:
 	clc
 	adc #1
 colc1b:
-	cmp #SPR_HGT					; within y range?
+	cmp #SPR_HGT				; within y range?
 	bcs sktyp1 				; no - they've missed.
 	clc					; add x difference.
 	adc z80_c
-	cmp #12					; only 5 corner pixels touching?
+	cmp #SPR_HGT+SPR_WID-4			; only 4 corner pixels touching?
 	bcs :+
 	sec
 	rts 					; carry set if there's a collision.
@@ -5613,12 +5611,12 @@ digu:				; dig up
 digd:
 	ldy #9
 	lda (z80_ix),y
-	sta dispx		; set y
+	sta dispx		; set x
 
 	dey
 	clc
 	lda (z80_ix),y
-	adc #16
+	adc #SPR_HGT
 	sta dispy		; set y
 	jmp digv
 
@@ -5646,7 +5644,7 @@ digr:
 	iny
 	lda (z80_ix),y
 	clc
-	adc #16
+	adc #SPR_WID
 	sta dispx		; set x+16
 	jmp digh
 
@@ -5654,49 +5652,61 @@ digr:
 
 digv:
 	jsr tstbl		; check blocktype in MAP
-	jsr fdchk		; test if FODDER
+	jsr fdchk		; remove if FODDER
 
-	clc
-	lda dispx		; look 1 cell down
-	adc #8
-	sta dispx
+	inc dispx
+	inc dispx
 	jsr tstbl		; check blocktype in MAP
-	jsr fdchk
+	jsr fdchk		; remove if FODDER
+
+	inc dispx
+	inc dispx
+	jsr tstbl		; check blocktype in MAP
+	jsr fdchk		; remove if FODDER
+
+	inc dispx
+	inc dispx
+	jsr tstbl		; check blocktype in MAP
+	jsr fdchk		; remove if FODDER
+
 	lda dispx
-	and #7
+	and #1
 	bne :+
 	rts
 :
-	clc
-	lda dispx		; look 1 cell down
-	adc #8
-	sta dispx
+	inc dispx
+	inc dispx
 	jsr tstbl		; check blocktype in MAP
-	jmp fdchk
+	jmp fdchk		; remove if FODDER
 
 ; Horizontal digging
 
 digh:
 	jsr tstbl		; check blocktype in MAP
-	jsr fdchk		; test if FODDER
+	jsr fdchk		; remove if FODDER
 
-	clc
-	lda dispy		; look 1 cell down
-	adc #8
-	sta dispy
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
 	jsr tstbl		; check blocktype in MAP
-	jsr fdchk
-	lda dispy
-	and #7
+	jsr fdchk		; remove if FODDER
+
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
+	jsr tstbl		; check blocktype in MAP
+	jsr fdchk		; remove if FODDER
+
+	ldy dispy
+	lda V_SPR_PTR,y
 	bne :+
 	rts
 :
-	clc
-	lda dispy		; look 1 cell down
-	adc #8
-	sta dispy
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
+	inc dispy		; look 1 cell down
 	jsr tstbl		; check blocktype in MAP
-	jmp fdchk
+	jmp fdchk		; remove if FODDER
 
 digcnt:	.byte 0
 
