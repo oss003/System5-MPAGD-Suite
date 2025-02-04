@@ -529,24 +529,6 @@ dbar:
 	sta dispx		; set display coordinate.
 	jsr gprad		; get printing address.
 
-;	lda bwid		; box width.
-;	sta z80_c		; loop counter in c.
-;	lda z80_h		
-;	sta z80_d		; store screen address high byte.
-;dbar1:
-;	ldx #7			; pixel height in b.
-;dbar0:
-;	ldy scrtab,x
-;	lda (scraddr),y		; get screen byte.
-;	eor #255		; reverse all bits.
-;	sta (scraddr),y		; write back to screen.
-;	dex			; next line down.
-;	bpl dbar0		; draw rest of character.
-
-;	inc scraddr		; one char right.
-;	dec z80_c		; decrement character counter.
-;	bne dbar1		; repeat for whole line.
-
 	ldy #0
 	lda (scraddr),y
 	eor #7
@@ -631,6 +613,8 @@ del_start:
 	lda #0
 	sta frames_passed
 del_loop:
+	jsr proshr
+
 	lda frames_passed
 	cmp #2
 	bcc del_loop
@@ -672,24 +656,24 @@ iniob:
 
 	ldx numob 		; number of objects in the game.
 iniob0:
-	ldy #35
+	ldy #15
 	lda (z80_ix),y 		; start screen.
-	ldy #32
+	ldy #12
 	sta (z80_ix),y 		; set start screen.
 
-	ldy #36
+	ldy #16
 	lda (z80_ix),y 		; find start y.
-	ldy #33
+	ldy #13
 	sta (z80_ix),y 		; set start y.
 
-	ldy #37
+	ldy #17
 	lda (z80_ix),y 		; get initial x.
-	ldy #34
+	ldy #14
 	sta (z80_ix),y 		; set x coord.
 
 	clc 			; point to next object.
 	lda z80_x
-	adc #38			; distance between objects.
+	adc #18			; distance between objects.
 	sta z80_x
 	bcc :+
 	inc z80_i
@@ -2186,7 +2170,7 @@ shwob:
 	lda numob 			; number of objects in the game.
 	sta sprcnt
 shwob0:
-	ldy #32 			; distance to room number.
+	ldy #12 			; distance to room number.
 	lda (z80_hl),y 			; same as an item?
 	cmp scno 			; current location.
 	bne :+
@@ -2194,7 +2178,7 @@ shwob0:
 :
 	clc
 	lda z80_l
-	adc #38 			; distance to next item.
+	adc #18 			; distance to next item.
 	sta z80_l
 	lda z80_h
 	adc #0
@@ -2212,7 +2196,7 @@ shwob0:
 ;---------------------------------------------------
 
 dobj:
-	ldy #33
+	ldy #13
 	lda (z80_hl),y 			; point to y.
 	sta dispy
 	iny
@@ -2238,7 +2222,7 @@ remob:
 	pla				; retrieve object number.
 	jsr gotob			; get its address.
 	lda #254
-	ldy #32
+	ldy #12
 	sta (z80_hl),y			; remove it.
 	rts
 
@@ -2259,7 +2243,7 @@ getob:
 	bne :+
 	rts			; we already do.
 :
-	ldy #32
+	ldy #12
 	lda (z80_hl),y		; is it on this screen?
 	cmp scno 		; current screen.
 	bne getob0		; not on screen, so nothing to delete.
@@ -2268,10 +2252,10 @@ getob:
 	sta (z80_hl),y		; pick it up.
 	iny 			; point to y coord.
 getob1:
-	ldy #33
+	ldy #13
 	lda (z80_hl),y		; y coord.
 	sta dispy
-	ldy #34
+	ldy #14
 	lda (z80_hl),y 		; x coord.
 	sta dispx
 	jmp dobj1 		; delete object sprite.
@@ -2314,7 +2298,7 @@ findob:
 fndob2:
 	clc
 	lda z80_l
-	adc #38 		; size of each object.
+	adc #18 		; size of each object.
 	sta z80_l
 	bcc :+
 	inc z80_h
@@ -2322,7 +2306,7 @@ fndob2:
 	dex 			; repeat until we find address.
 	bne fndob2
 fndob1:
-	ldy #32			; distance to room it's in.
+	ldy #12			; distance to room it's in.
 	lda (z80_hl),y		; fetch status.
 	rts
 .endif
@@ -2345,7 +2329,7 @@ drpob:
 	bne :+
 	rts			; yes, nothing to do.
 :
-	ldy #32
+	ldy #12
 	lda scno
 	sta (z80_hl),y		; bring onto screen.
 	lda dispy		; sprite y coordinate.
@@ -2373,14 +2357,14 @@ skobj:
 	sta z80_b 		; set up the loop counter.
 skobj0:
 	lda scno		; current room number.
-	ldy #32
+	ldy #12
 	cmp (z80_hl),y		; is object in here?
 	bne :+
 	jsr skobj1		; yes, check coordinates.
 :
 	clc			; point to next object in table.
 	lda z80_l
-	adc #38			; size of each object.
+	adc #18			; size of each object.
 	sta z80_l
 	bcc :+
 	inc z80_h
@@ -2392,24 +2376,24 @@ skobj0:
 	rts
 
 skobj1:
-	ldy #33			; point to y coordinate.
+	ldy #13			; point to y coordinate.
 	lda (z80_hl),y		; point to y coordinate.
 	sec
 	ldy #8
 	sbc (z80_ix),y 		; subtract sprite y.
 	clc
-	adc #15			; add sprite height minus one.
-	cmp #31			; within range?
+	adc #8			; add sprite height minus one.
+	cmp #17			; within range?
 	bcs skobj2		; no, ignore object.
 
-	ldy #34			; point to x coordinate now.
+	ldy #14			; point to x coordinate now.
 	lda (z80_hl),y 		; get coordinate.
 	sec
 	ldy #9
 	sbc (z80_ix),y 		; subtract the sprite x.
 	clc			; add sprite width minus one.
-	adc #15
-	cmp #31			; within range?
+	adc #7
+	cmp #15			; within range?
 	bcs skobj2		; no, ignore object.
 
 	pla			; remove return address from stack.
@@ -2611,6 +2595,10 @@ dscor3:
 	dec z80_b
 	bne dscor0 		; repeat for all digits.
 dscor2:
+	lda #12
+	jsr pchar
+	jsr nexpos
+
 	lda bcolour
 	jsr pchar
 	jsr nexpos
@@ -2973,93 +2961,40 @@ pchr:
 	rts
 
 ;----------------------------------------------------
-; Shifter sprite routine for objects.
-;----------------------------------------------------
-
-.if oflag
-sprit7:
-	lda z80_b
-	beq sprit0
-	sta z80_a
-sprit3:
-	lsr spr			; shift into position.
-	ror spr+1
-	ror spr+2
-	dec z80_a		; one less iteration.
-	bne sprit3
-sprit0:
-	rts 			; now apply to screen.
-
-;----------------------------------------------------
 ; Draw sprite
 ;----------------------------------------------------
 
-sprite:
-	stx xtmp		; Save X-reg
-	jsr scadd 		; get screen address in scraddr.
+.if oflag
 
-	lda dispx 		; x position.
-	and #7 			; position straddling cells.
-	sta z80_b		; store in b register.
+sprite:
+	jsr scadd 		; get screen address in scraddr.
 
 	lda z80_l		; store sprite graphic address.
 	sta sprit1+1
-	sta sprit2+1
 	lda z80_h
 	sta sprit1+2
-	sta sprit2+2
 
 	ldx #0			; pixel height.
 	ldy #0
 sprit1:
 	lda objdta,x		; fetch first byte.
-	sta spr
-	inx
-sprit2:
-	lda objdta,x
-	sta spr+1
-
-	lda #0
-	sta spr+2
-	jsr sprit7		; shift sprite
-
-	dex
-	lda spr			; fetch graphic.
 	ldy spritetab,x
 	eor (scraddr),y		; merge with screen image.
+	ora #$20
 	sta (scraddr),y		; write to screen.
 	inx			; next screen byte.
-
-	lda spr+1		; fetch graphic.
-	ldy spritetab,x
-	eor (scraddr),y		; merge with screen image.
-	sta (scraddr),y		; write to screen.
-	iny
-
-	lda spr+2		; fetch graphic.
-	eor (scraddr),y		; merge with screen image.
-	sta (scraddr),y		; write to screen.
-
-	inx			; next source byte.
-	cpx #16
-	bne :+
-	inc scraddr+1
-:
-	cpx #32
+	cpx #12
 	bne sprit1		; repeat
 
-	ldx xtmp		; retreive X-reg
 	rts
 
 spritetab:
-	.byte $00,$01,$20,$21,$40,$41,$60,$61
-	.byte $80,$81,$a0,$a1,$c0,$c1,$e0,$e1
-	.byte $00,$01,$20,$21,$40,$41,$60,$61
-	.byte $80,$81,$a0,$a1,$c0,$c1,$e0,$e1
+	.byte $00,$01,$02,$03
+	.byte $28,$29,$2a,$2b
+	.byte $50,$51,$52,$53
 
-spr:	.byte 0,0,0
+spr:	.byte 0,0
 
-;xtmp:	.byte 0
 .endif
 
 ;-----------------------------------------------------------
