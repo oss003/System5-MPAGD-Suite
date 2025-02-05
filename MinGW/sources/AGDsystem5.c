@@ -165,6 +165,7 @@ enum
 	INS_ADDBONUS,
 	INS_ZEROBONUS,
 	INS_SOUND,
+	INS_LINECOL,
 	INS_BEEP,
 	INS_CRASH,
 	INS_CLS,
@@ -377,6 +378,7 @@ void CR_Bonus( void );
 void CR_AddBonus( void );
 void CR_ZeroBonus( void );
 void CR_Sound( void );
+void CR_LineCol( void);
 void CR_Beep( void );
 void CR_Crash( void );
 void CR_Border( void );
@@ -600,6 +602,7 @@ unsigned const char *keywrd =
 	"ADDBONUS."			// add bonus to score.
 	"ZEROBONUS."		// add bonus to score.
 	"SOUND."			// play sound.
+	"LINECOL."		// Background line colour
 	"BEEP."				// play beeper sound.
 	"CRASH."			// play white noise sound.
 	"CLS."				// clear screen.
@@ -2040,7 +2043,7 @@ void CreateObjects( void )
 	if ( nObjects == 0 )
 	{
 		WriteText( "\nobjdta:");
-		WriteText( ".word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" );
+		WriteText( ".word 0,0,0,0,0,0,0,0,0,0,0,0" );
 		WriteInstruction( ".byte 0,254,0,0,254,0,0" );
 	}
 	else
@@ -2055,7 +2058,7 @@ void CreateObjects( void )
 			cX = *cSrc++;									/* get y. */
 			WriteInstruction( ".byte " );
 
-			for( nDatum = 0; nDatum < 32; nDatum++ )
+			for( nDatum = 0; nDatum < 12; nDatum++ )
 			{
 				cDatum = *cSrc++;
 				WriteNumber( cDatum );
@@ -2601,6 +2604,9 @@ void Compile( unsigned short int nInstruction )
 			break;
 		case INS_SOUND:
 			CR_Sound();
+			break;
+		case INS_LINECOL:
+			CR_LineCol();
 			break;
 		case INS_BEEP:
 			CR_Beep();
@@ -3869,6 +3875,26 @@ void CR_Sound( void )
 //	WriteInstruction( "sta z80_h" );
 //	WriteInstruction( "jsr isnd" );
 	WriteInstruction( "; SOUND command");
+}
+
+void CR_LineCol( void )
+{
+	unsigned short int nArg = NextKeyword();
+
+	if ( nArg == INS_NUM )					/* literal number. */
+	{
+		nArg = GetNum( 8 );
+		WriteInstruction( "lda #" );
+		WriteNumber( nArg );
+		WriteText ( "		; LINECOL" );
+	}
+	else							/* work out back colour. */
+	{
+		CompileKnownArgument( nArg );			/* puts argument into accumulator. */
+		WriteText ( "	; LINECOL" );
+	}
+
+	WriteInstruction( "jsr linecol" );
 }
 
 void CR_Beep( void )
@@ -5248,10 +5274,10 @@ void CR_DefineObject( void )
 		else
 		{
 			Error( "Missing data for DEFINEOBJECT" );
-			nDatum = 36;
+			nDatum = 16;
 		}
 	}
-	while ( nDatum < 36 );
+	while ( nDatum < 16 );
 
 	nObjects++;
 }
