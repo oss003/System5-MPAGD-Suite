@@ -1,1 +1,1 @@
-.include "testobj.inc" 
+.include "testcollect.inc" 

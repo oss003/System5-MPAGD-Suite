@@ -4,7 +4,7 @@ DEFINEWINDOW    1 1 22 22
 DEFINECONTROLS  'Q' 'A' 'O' 'P' ' ' 'Z' 'X'
 
 DEFINEMESSAGES
-    " "
+    " "
 
 DEFINEFONT      0 0 0 0 0 0 0 0
                 0 48 48 48 48 0 48 0
@@ -109,7 +109,18 @@ DEFINEBLOCK FODDERBLOCK   $66,1
 
 DEFINEBLOCK WALLBLOCK     $7f,1
 
-DEFINEBLOCK DEADLYBLOCK   $78,2
+DEFINEBLOCK COLLECTABLE  $ff,2
+
+DEFINEBLOCK LADDERBLOCK  $78,2
+
+DEFINEBLOCK DEADLYBLOCK  $78,2
+
+DEFINEBLOCK CUSTOMBLOCK  $78,2
+
+DEFINEBLOCK WATERBLOCK  $78,2
+
+DEFINEBLOCK PLATFORMBLOCK  $78,2
+
 
 DEFINESPRITE    1
 40,123,53,32,
@@ -117,7 +128,7 @@ DEFINESPRITE    1
 32,96,53,32
 
 
-DEFINESCREEN      0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+DEFINESCREEN      0   8   2   4   5   6   7   3   3   3   3   3   3   3   3   3   3   3   3   3   3   3
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
@@ -135,7 +146,7 @@ DEFINESCREEN      0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0 
                   2   0   0   0   0   0   0   0   0   0   0   0   0   0   0   3   0   0   0   0   0   0
                   2   0   0   0   0   0   0   0   0   0   0   2   2   2   2   2   2   2   2   2   2   2
                   2   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
-                  2   0   0   0   0   0   0   0   3   0   0   0   0   0   0   0   0   0   0   0   0   0
+                  2   0   3   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
                   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
@@ -165,9 +176,8 @@ DEFINESCREEN      0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0 
                   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
 SPRITEPOSITION  0 0 32 16
 
-DEFINEOBJECT    71 254 56 120
-                0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+DEFINEOBJECT    0 254 30 30
+                0 0 0 0 0 0 0 0 0 0 0 0 
 
 DEFINEJUMP	250,252,254,255,0,0,1,2,4,6,6,6,99
 

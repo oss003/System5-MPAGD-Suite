@@ -43,6 +43,7 @@
 
 	VIA1		= $0e20
 	PORT_A		= VIA1+$1	; Keyboard 
+	DIR_A		= VIA1+$3	; Datadirection register
 	Timer1_Low  	= VIA1+$4	; Timer 1 low byte
 	Timer1_High 	= VIA1+$5	; Timer 1 high byte
 	Timer2_Low	= VIA1+$8	; Timer 2 low byte
@@ -310,19 +311,40 @@ vsync1:
 	bne:+
 	jsr proshr		; handle shrapnel every even frame
 :
-;	lda sndtyp
-;	beq sndskip
-;sndloop:
-;	lda SpeakerBit		; handle sound
-;	ldy sndtyp
-;sndwait:
-;	dey
-;	bne sndwait
-;	eor #4
-;	sta SpeakerBit
-;	dec sndtyp
-;	bne sndloop
-;sndskip: 
+
+; Beepersound
+
+	lda sndtyp
+	beq sndskip
+
+	lda PCR			; Switch to speaker, CA2=0
+	and #%11110001
+	ora #%00001100
+	sta PCR
+
+	lda #%00100000		; Set bit5=output speaker
+	sta DIR_A
+
+sndloop:
+	lda PORT_A		; handle sound
+	ldy sndtyp
+sndwait:
+	dey
+	bne sndwait
+	eor #%00100000		; Toggle speakerbit
+	sta PORT_A		
+	dec sndtyp
+	bne sndloop
+
+	lda #%00000000		; Set PORT_A input
+	sta DIR_A
+
+	lda PCR			; Switch to keyboard, CA2=1
+	and #%11110001
+	ora #%00001110
+	sta PCR
+
+sndskip: 
 
 	pla
 	tax
@@ -344,6 +366,7 @@ joy1:
 	lda PCR			; Switch to joystick, CA2=0
 	and #%11110001
 	ora #%00001100
+	sta PCR
 
 	lda PORT_A		; Read FUDLR joystick
 	and #$7f
@@ -352,6 +375,7 @@ joy1:
 	lda PCR			; Switch to keyboard, CA2=1
 	and #%11110001
 	ora #%00001110
+	sta PCR
 
 	lda keys+5		; Check FIRE2
 	jsr ktest
@@ -392,6 +416,7 @@ ktest:
 	bmi not_pressed	; BUG MAME, bit 7 not set ....
 ;.endif
 	lda PORT_A
+	sta varopt
 	cmp tmp
 	beq pressed
 not_pressed:

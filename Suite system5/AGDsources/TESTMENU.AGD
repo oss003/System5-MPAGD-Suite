@@ -5,7 +5,7 @@
 ; Screen is divided into 32 columns and 24 rows (Spectrum and Next/Timex) or 25 rows (CPC)
 ; The 4 parameters for DEFINEWINDOW are top edge, left edge, height and width respectively
 
-DEFINEWINDOW    1 1 22 30
+DEFINEWINDOW    1 1 22 38
 
 DEFINEFONT      0 0 0 0 0 0 0 0
                 0 48 48 48 48 0 48 0
@@ -111,6 +111,11 @@ DEFINEFONT      0 0 0 0 0 0 0 0
 ; Block 0
 
 DEFINEBLOCK EMPTYBLOCK  $00,1
+DEFINEBLOCK EMPTYBLOCK  $12,1
+DEFINEBLOCK EMPTYBLOCK  $13,1
+DEFINEBLOCK EMPTYBLOCK  $14,1
+DEFINEBLOCK EMPTYBLOCK  $15,1
+DEFINEBLOCK EMPTYBLOCK  $16,1
 
 ; Sprites
 ; First argument defines the number of frames
@@ -125,34 +130,34 @@ DEFINESPRITE    1		; number of frames
 ; The compiler will automatically compress screens
 
 DEFINESCREEN
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 1 0 0 0 0 2 0 0 0 0 3 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 1 0 0 0 0 2 0 0 0 0 3 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 1 0 0 0 0 2 0 0 0 0 3 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 0 0 0
+	0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 3 0 0 0 0 4 0 0 0 0 5 0 0 0 0 0 0 0 0
 
 ; Next we define the sprites that appear on the screen
 ; SPRITEPOSITION requires 4 numbers for image, type, Y coordinate and X coordinate in that order
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
-SPRITEPOSITION 66,0,88,128
+SPRITEPOSITION 66,0,10,10
 
 
 ; Define objects
@@ -162,41 +167,35 @@ SPRITEPOSITION 66,0,88,128
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
 ; Spectrum:
-DEFINEOBJECT    0,0,80,20     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,12     ; attribute, room, Y, X
+55,99,35,107,
+53,53,53,106,
+117,114,112,122
 
-DEFINEOBJECT    0,0,100,40     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,22     ; attribute, room, Y, X
+55,99,35,107,
+53,107,32,106,
+117,115,113,122
 
-DEFINEOBJECT    0,0,120,60     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,32     ; attribute, room, Y, X
+55,115,35,107,
+53,56,33,106,
+117,115,113,122
 
-DEFINEOBJECT    0,0,140,80     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,42     ; attribute, room, Y, X
+55,115,35,107,
+53,44,49,106,
+117,115,112,122
 
-DEFINEOBJECT    0,0,160,100     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,52     ; attribute, room, Y, X
+55,99,35,107,
+53,117,48,106,
+117,114,112,122
 
-DEFINEOBJECT    0,0,180,120     ; attribute, room, Y, X
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
-                255 255 255 255 255 255 255 255
+DEFINEOBJECT    0,0,57,62     ; attribute, room, Y, X
+55,115,51,107,
+53,45,48,106,
+117,115,112,122
 
 ; Map.
 ; First argument is WIDTH, second is the startscreen
@@ -238,12 +237,12 @@ EVENT MAINLOOP1
  PRINT "MENU/INVENTORY TEST:"
  PRINTMODE 0
 
- AT 4 6
+ AT 3 6
  PRINT "MENU      = PRESS 1"
+ AT 4 6
+ PRINT "INVENTORY = PRESS 2"
  AT 5 6
- PRINT "EMPTY INV = PRESS 2"
- AT 6 6
- PRINT "INVENTORY = PRESS 3"
+ PRINT "GET 0/3/5 = PRESS 3"
 
  IF KEY OPTION1
   MENU "ONE,TWO,THREE,FOUR,FIVE,SIX,SEVEN"
@@ -254,31 +253,36 @@ EVENT MAINLOOP1
  ENDIF
 
  IF KEY OPTION2
-  IF GOT 0
-    PUT 20,80,0
-  ENDIF
-  IF GOT 3
-    PUT 80,140,3
-  ENDIF
-  IF GOT 5
-    PUT 120,180,5
-  ENDIF
   INV " OBJ0 , OBJ1 , OBJ2 , OBJ3 , OBJ4 , OBJ5"
   AT 23,5
   PRINT "SELECTION WAS: "
   DISPLAY OPT
   PRINT "  "
+
+  IF OPT 0
+   IF GOT 0
+    PUT 12 57 0
+   ENDIF
+  ENDIF
+
+  IF OPT 3
+   IF GOT 3
+    PUT 42 57 3
+   ENDIF
+  ENDIF
+
+  IF OPT 5
+   IF GOT 5
+    PUT 62 57 5
+   ENDIF
+  ENDIF
+
  ENDIF
 
  IF KEY OPTION3
   GET 0
   GET 3
   GET 5
-  INV " OBJ0 , OBJ1 , OBJ2 , OBJ3 , OBJ4 , OBJ5"
-  AT 23,5
-  PRINT "SELECTION WAS: "
-  DISPLAY OPT
-  PRINT "  "
  ENDIF
 
 EVENT MAINLOOP2

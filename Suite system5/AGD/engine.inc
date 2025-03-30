@@ -321,10 +321,10 @@ dbox8:
 	adc winlft		; add left edge of window.
 	sta blft		; box left.
 
-	lda #<(FONT-256)		; font.
-	sta grbase		; set up for text display.
-	lda #>(FONT-256)
-	sta grbase+1
+;	lda #<(FONT-256)		; font.
+;	sta grbase		; set up for text display.
+;	lda #>(FONT-256)
+;	sta grbase+1
 
 	lda TmpAddr+1		; restore message pointer.
 	sta z80_l
@@ -349,7 +349,15 @@ mod0:
 	lda bwid		; box width.
 	sta z80_b		; store width.
 
-	lda fcolour		; Set textcolour
+; Frontpart colourbar
+
+	lda #t_red		; Set backcolour
+	jsr pchar
+	jsr nexpos
+	lda #29			; Colour bar
+	jsr pchar
+	jsr nexpos
+	lda #t_white		; Set textcolour
 	jsr pchar
 	jsr nexpos
 dbox0:
@@ -360,7 +368,7 @@ dbox0:
 	cmp #13			; end of line?
 	beq dbox1		; yes, next one.
 
-	cmp #141			; end of line?
+	cmp #141		; end of line?
 	bne :+
 	dec bwid
 	jmp dbox7		; yes, next one.
@@ -427,6 +435,19 @@ dbox1:
 :
 	jsr dboxf		; fill box out to right side.
 dbox10:
+; Endpart colourbar
+	lda #00			; Colour bar
+	jsr pchar
+	jsr nexpos
+	lda #00			; Colour bar
+	jsr pchar
+	jsr nexpos
+	lda #28			; Colour bar
+	jsr pchar
+	jsr nexpos
+	lda bcolour		; Colour bar
+	jsr pchar
+	jsr nexpos
 	inc dispy		; y coordinate down a line next position.
 	jmp dbox2		; next line.
 dbox7:
@@ -441,6 +462,13 @@ dbox7:
 ;------------------------------------------------------
 
 dbox11:
+; Endpart colourbar
+	lda #28			; Colour bar
+	jsr pchar
+	jsr nexpos
+	lda bcolour		; Colour bar
+	jsr pchar
+	jsr nexpos
 	lda btop		; box top.
 	sta dispy		; set bar position.
 dbox14:
@@ -531,7 +559,7 @@ dbar:
 
 	ldy #0
 	lda (scraddr),y
-	eor #7
+	eor #5
 	sta (scraddr),y
 
 	rts
@@ -1443,7 +1471,7 @@ star1:
 
 	lda wnrgtx 		; get edge of screen.
 	clc
-	adc #15			; add width of sprite minus 1.
+	adc #SPR_WID-4		; add width of sprite minus 1.
 	jmp star9
 star2:
 	jsr qrand 		; get quick random number.
@@ -1455,7 +1483,7 @@ star2:
 star3:
 	lda wnbotx 		; get edge of screen.
 	clc
-	adc #15 		; height of sprite minus one pixel.
+	adc #SPR_HGT-2 		; height of sprite minus one pixel.
 	jmp star8
 
 ;----------------------------------------------------
@@ -3479,24 +3507,26 @@ getcol:
 ; Get collectable block.
 
 gtblk:
-	ldy #0
-	lda (bufaddr),y
-	sta colpatt		; save collectable block nr
-
-        lda #0
-        sta (bufaddr),y		; make it empty now in MAP.
+	ldy #0			; Reset index
+	
+	tya			; set clear
+        sta (bufaddr),y		; clear block in MAP.
 
 	lda bufaddr		; calculate screenaddr
 	sta scraddr
 	sec
 	lda bufaddr+1
-	sbc #>(MAP-ScreenAddr)	;$d4
+	sbc #>(MAP-ScreenAddr)
 	sta scraddr+1
 
-	ldy #0			; erase block on screen
-	lda (scraddr),y
-	eor colpatt
-	sta (scraddr),y
+	lda colpatt		; get blocknr
+	asl a			; multiply by 2
+	tax			; set blockdata index
+	ldy #0			; set screenaddress index
+	lda (scraddr),y		; get screendata
+	eor chgfx,x		; eor with blockdata
+	ora #$20		; set graphics bit
+	sta (scraddr),y		; display on screen
 
 	rts
 .endif

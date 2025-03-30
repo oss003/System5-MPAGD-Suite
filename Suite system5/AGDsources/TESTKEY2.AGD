@@ -7,6 +7,8 @@
 
 DEFINEWINDOW    1 1 22 30
 
+DEFINECONTROLS  'Q' 'A' 'O' 'P' ' ' 'N' 'M' '1' $1b $7f $08
+
 DEFINEFONT      0 0 0 0 0 0 0 0
                 0 48 48 48 48 0 48 0
                 0 108 108 0 0 0 0 0
@@ -111,14 +113,15 @@ DEFINEFONT      0 0 0 0 0 0 0 0
 ; Block 0
 
 DEFINEBLOCK     EMPTYBLOCK      ; property
-                0 0                                       ; Spectrum.
+                0 0 0 0 0 0 0 0 71                                      ; Spectrum.
 
 ; Sprites
 ; First argument defines the number of frames
 ; Then 32 bytes for each sprite frame (Spectrum and Timex) or 80 bytes (CPC).
 
 DEFINESPRITE    1		; number of frames
-                0,0,0,0,0,0,0,0,0,0,0,0
+                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0         ; Spectrum and Timex.
+                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 ; Screen layouts are best arranged in monospaced rows and columns
 ; DEFINESCREEN is followed by the block numbers that make up the screen
@@ -153,7 +156,7 @@ DEFINESCREEN
 ; SPRITEPOSITION requires 4 numbers for image, type, Y coordinate and X coordinate in that order
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
-SPRITEPOSITION 0,0,30,30
+SPRITEPOSITION 0,0,88,128
 
 
 ; Define objects
@@ -163,9 +166,9 @@ SPRITEPOSITION 0,0,30,30
 ; Coordinates are based on Spectrum screen, even for CPC so need to change for conversions
 
 ; Spectrum:
-DEFINEOBJECT    0,0,30,30     ; attribute, room, Y, X
-                0,0,0,0,0,0,0,0,0,0,0,0
-
+DEFINEOBJECT    66,0,160,32     ; attribute, room, Y, X
+                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 ; Map.
 ; First argument is WIDTH, second is the startscreen
 ; We then arrange the map as a grid with correct width, monospaced here for readability
@@ -201,33 +204,101 @@ EVENT INITSPRITE
 
 EVENT MAINLOOP1
  AT 0 1
- PRINTMODE 1
- PRINT "DATA TEST: "
- PRINTMODE 0
+; PRINTMODE 1
+ PRINT "KEY TEST: "
+; PRINTMODE 0
 
- RESTORE
- LET LINE = 3
- LET COLUMN = 1
- REPEAT 10
-  READ A
-  DISPLAY A
-;  IF A <> 9
-;    PRINT ","
-;  ENDIF
- ENDREPEAT
+ AT 3 1
+ PRINT "KEY RIGHT: "
+ IF KEY RIGHT
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
 
- RESTORE
- LET LINE = 6
- LET COLUMN = 1
- REPEAT 10
-  READ A
-  DISPLAY A
-;  IF A <> 9
-;    PRINT ","
-;  ENDIF
- ENDREPEAT
+ AT 4 1
+ PRINT "KEY LEFT : "
+ IF KEY LEFT
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
 
- DATA 0 1 2 3 4 5 6 7 8 9
+ AT 5 1
+ PRINT "KEY DOWN : "
+ IF KEY DOWN
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 6 1
+ PRINT "KEY UP   : "
+ IF KEY UP
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 7 1
+ PRINT "KEY FIRE1: "
+ IF KEY FIRE1
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 8 1
+ PRINT "KEY FIRE2: "
+ IF KEY FIRE2
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 9 1
+ PRINT "KEY FIRE3: "
+ IF KEY FIRE3
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 10 1
+ PRINT "KEY OPT1 : "
+ IF KEY OPTION1
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 11 1
+ PRINT "KEY ESC : "
+ IF KEY OPTION2
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 12 1
+ PRINT "KEY DEL : "
+ IF KEY OPTION3
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+ AT 13 1
+ PRINT "KEY BS  : "
+ IF KEY OPTION4
+  PRINT "OK"
+ ELSE
+  PRINT "  "
+ ENDIF
+
+AT 22,1
+PRINT "KeyCode: "
+DISPLAY OPT
 
 EVENT MAINLOOP2
 
