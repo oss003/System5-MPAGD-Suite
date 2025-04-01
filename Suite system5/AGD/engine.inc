@@ -2600,6 +2600,9 @@ dscor1:
 	jsr preprt		; set up font and print position.
 	jsr checkx		; make sure we're in a printable range.
 
+	lda fcolour
+	jsr pchar
+	jsr nexpos
 ;	lda #6			; digits to display.
 ;	sta z80_b
 	lda prtmod		; get print mode.
@@ -3148,7 +3151,7 @@ laddd:
 
 	ldy #8
 	lda (z80_ix),y		; y coordinate.
-	and #254		; make it even.
+;	and #254		; make it even.
 	sta (z80_ix),y 		; reset it.
 	clc 			; look down 16 pixels.
 numsp5:
@@ -3173,11 +3176,10 @@ laddu:
 
 	ldy #8
 	lda (z80_ix),y		; y coordinate.
-	and #254 		; make it even.
 	sta (z80_ix),y		; reset it.
 	clc 			; look 2 pixels above feet.
 numsp6:
-	adc #SPR_HGT-2
+	adc #SPR_HGT-1
 	sta dispy		; coords in dispx,dispy.
 laddv:
 	jsr tstbl 		; get map address.
@@ -3194,7 +3196,7 @@ laddv:
 	rts 			; impassable.
 :
 	lda dispx 		; y coordinate.
-	and #7 			; position straddling block cells.
+	and #1 			; position straddling block cells.
 	bne :+
 	rts 			; no more checks needed.
 :
@@ -5343,23 +5345,25 @@ evis0:
 clw:
 	lda wintop			; get coordinates of window.
 	sta dispy			; put into dispx for calculation.
-	lda winlft
-	sta dispx
 
 	lda winhgt			; height of window.
 	sta rrow			; copy to b register.
 clw3:
+
+	lda winlft
+	sta dispx
+;	lda bcolour
+;	jsr gprad 			; get print address.
+;	jsr pchr
+;	inc dispx
+
 	lda winwid 			; width of window.
 	sta rcol
 clw2:
 	jsr gprad 			; get print address.
 	lda #0				; zero byte to write.
-	ldx #7				; pixel height of each cell.
 clw1:
-	ldy scrtab,x
-	sta (scraddr),y 			; copy to screen.
-	dex				; next screen row down.
-	bpl clw1
+	jsr pchr
 
 	inc dispx			; next column.
 	dec rcol			; one less to do.

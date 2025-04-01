@@ -1,0 +1,19 @@
+Control codes:
+
+ 0		NULL			16		DLE
+ 1	ar	Alpha red		17	gr	Graphics red
+ 2	ag	Alpha green		18	gg	Graphics green
+ 3	ay	Alpha yellow		19	gy	Graphics yellow
+ 4	ab	Alpha blue		20	gb	Graphics blue
+ 5	am	Alpha magenta		21	gm	Graphics magenta
+ 6	ac	Alpha cyan		22	gc	Graphics cyan
+ 7	aw	Alpha white		23	gw	Graphics white
+ 8	fl	Flash (fl on)		24	cd	Conceal display (hide)
+ 9	st	Steady (fl off)		25	cg	Continuous graphics
+10	eb	End box			26	sg	Seperated graphics
+11	sb	Start box		27		ESC
+12	nh	Normal height (dh off)	28	bb	Black background
+13	dh	Double height (dh on)	29	nb	New background
+14		S0			30	hg	Hold graphics
+15		S1			31	rg	Release graphics
+

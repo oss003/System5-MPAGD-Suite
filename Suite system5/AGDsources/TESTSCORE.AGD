@@ -5,7 +5,7 @@
 ; Screen is divided into 32 columns and 24 rows (Spectrum and Next/Timex) or 25 rows (CPC)
 ; The 4 parameters for DEFINEWINDOW are top edge, left edge, height and width respectively
 
-DEFINEWINDOW    1 1 22 30
+DEFINEWINDOW    2 1 21 30
 
 DEFINEFONT      0 0 0 0 0 0 0 0
                 0 48 48 48 48 0 48 0
@@ -112,6 +112,8 @@ DEFINEFONT      0 0 0 0 0 0 0 0
 
 DEFINEBLOCK     EMPTYBLOCK      ; property
                 0 0                                     ; Spectrum.
+DEFINEBLOCK	EMPTYBLOCK
+		$66,1
 
 ; Sprites
 ; First argument defines the number of frames
@@ -129,21 +131,20 @@ DEFINESPRITE    1		; number of frames
 ; The compiler will automatically compress screens
 
 DEFINESCREEN
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+	1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+	1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 	0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -205,41 +206,45 @@ EVENT SPRITETYPE8
 EVENT INITSPRITE
 
 EVENT MAINLOOP1
- AT 0 1
+ LINECOL 0
+ LINECOL 1
+ AT 0 8
  PRINTMODE 1
+ INK 1
  PRINT "TEST SCORE: "
  PRINTMODE 0
 
   REPEAT 30
-   AT 3,2
+   AT 3,6
+   INK 2
    PRINT "SCORE   BONUS   HIGH"
-
+   INK 7
    SCORE 11
-   AT 4,1
+   AT 4,5
    SHOWSCORE 
-   AT 5,2
+   AT 5,6
    SHOWSCORE 5
-   AT 6,3
+   AT 6,7
    SHOWSCORE 4
-   AT 7,4
+   AT 7,8
    SHOWSCORE 3
-   AT 8,5
+   AT 8,9
    SHOWSCORE 2
-   AT 9,6
+   AT 9,10
    SHOWSCORE 1
 
    BONUS 5
-   AT 4,9
+   AT 4,13
    SHOWBONUS 
-   AT 5,10
+   AT 5,14
    SHOWBONUS 5
-   AT 6,11
+   AT 6,15
    SHOWBONUS 4
-   AT 7,12
+   AT 7,16
    SHOWBONUS 3
-   AT 8,13
+   AT 8,17
    SHOWBONUS 2
-   AT 9,14
+   AT 9,18
    SHOWBONUS 1
    DELAY 10
 
@@ -255,6 +260,8 @@ EVENT INTROMENU
 EVENT GAMEINIT
 
 EVENT RESTARTSCREEN
+  PAPER 3
+  CLS
 
 EVENT FELLTOOFAR
 
@@ -265,26 +272,28 @@ EVENT LOSTGAME
 EVENT COMPLETEDGAME
 
 EVENT NEWHIGHSCORE
-   AT 4,16
+   AT 4,20
    SHOWHIGH 
-   AT 5,17
+   AT 5,21
    SHOWHIGH 5
-   AT 6,18
+   AT 6,22
    SHOWHIGH 4
-   AT 7,19
+   AT 7,23
    SHOWHIGH 3
-   AT 8,20
+   AT 8,24
    SHOWHIGH 2
-   AT 9,21
+   AT 9,25
    SHOWHIGH 1
 
   AT 11,4
+  INK 1
   PRINT "ADDING BONUS TO SCORE"
 
   ADDBONUS
   AT 12,9
   SHOWSCORE
-  AT 14,4
+  AT 14,7
+  INK 5
   PRINT "PRESS KEY TO END"
   WAITKEY
 
